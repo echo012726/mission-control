@@ -1,9 +1,11 @@
 import { ConvexReactClient } from "convex/react";
 import { createContext, useContext } from "react";
 
-const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL || "http://localhost:3000");
+// Use env var if available, otherwise use empty string (will handle gracefully)
+const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL || "";
+const convex = new ConvexReactClient(convexUrl);
 
-const ConvexContext = createContext<ConvexReactClient>(convex);
+const ConvexContext = createContext<ConvexReactClient | null>(convex);
 
 export function ConvexClientProvider({ children }: { children: React.ReactNode }) {
   return (
