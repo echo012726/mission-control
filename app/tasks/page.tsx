@@ -1,10 +1,8 @@
 'use client'
 import { useState, useEffect } from 'react'
 
-const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL || ''
-
 interface Task {
-  _id: string
+  id: string
   title: string
   status: 'todo' | 'in_progress' | 'done' | 'blocked'
   assigneeType: 'user' | 'agent'
@@ -13,38 +11,37 @@ interface Task {
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([])
-  const [loading, setLoading] = useState(true)
   const [newTask, setNewTask] = useState('')
 
   useEffect(() => {
-    fetchTasks()
+    const saved = localStorage.getItem('mc_tasks')
+    if (saved) setTasks(JSON.parse(saved))
   }, [])
 
-  async function fetchTasks() {
-    setLoading(true)
-    try {
-      const res = await fetch(`${CONVEX_URL}/api/getTasks`, { method: 'POST', body: JSON.stringify({ args: {} }) })
-      const data = await res.json()
-      setTasks(data || [])
-    } catch (e) {
-      console.error(e)
-    }
-    setLoading(false)
+  function saveTasks(newTasks: Task[]) {
+    setTasks(newTasks)
+    localStorage.setItem('mc_tasks', JSON.stringify(newTasks))
   }
 
-  async function createTask() {
+  function createTask() {
     if (!newTask.trim()) return
-    try {
-      await fetch(`${CONVEX_URL}/api/createTask`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ args: { title: newTask, status: 'todo', assigneeType: 'user' } }),
-      })
-      setNewTask('')
-      fetchTasks()
-    } catch (e) {
-      console.error(e)
+    const task: Task = {
+      id: Date.now().toString(),
+      title: newTask,
+      status: 'todo',
+      assigneeType: 'user',
+      createdAt: Date.now()
     }
+    saveTasks([...tasks, task])
+    setNewTask('')
+  }
+
+  function deleteTask(id: string) {
+    saveTasks(tasks.filter(t => t.id !== id))
+  }
+
+  function moveTask(id: string, status: Task['status']) {
+    saveTasks(tasks.map(t => t.id === id ? { ...t, status } : t))
   }
 
   const todoTasks = tasks.filter(t => t.status === 'todo')
@@ -69,36 +66,57 @@ export default function TasksPage() {
         </div>
       </div>
 
-      {loading ? (
-        <p>Loading...</p>
-      ) : (
-        <div className="grid grid-cols-4 gap-4">
-          <div className="border rounded p-3">
-            <h3 className="font-semibold mb-2">To Do ({todoTasks.length})</h3>
-            {todoTasks.map(task => (
-              <div key={task._id} className="bg-white p-2 rounded shadow-sm mb-2">{task.title}</div>
-            ))}
-          </div>
-          <div className="border rounded p-3">
-            <h3 className="font-semibold mb-2">In Progress ({inProgressTasks.length})</h3>
-            {inProgressTasks.map(task => (
-              <div key={task._id} className="bg-white p-2 rounded shadow-sm mb-2">{task.title}</div>
-            ))}
-          </div>
-          <div className="border rounded p-3">
-            <h3 className="font-semibold mb-2">Done ({doneTasks.length})</h3>
-            {doneTasks.map(task => (
-              <div key={task._id} className="bg-white p-2 rounded shadow-sm mb-2 line-through">{task.title}</div>
-            ))}
-          </div>
-          <div className="border rounded p-3">
-            <h3 className="font-semibold mb-2">Blocked ({blockedTasks.length})</h3>
-            {blockedTasks.map(task => (
-              <div key={task._id} className="bg-white p-2 rounded shadow-sm mb-2">{task.title}</div>
-            ))}
-          </div>
+      <div className="grid grid-cols-4 gap-4">
+        <div className="border rounded p-3">
+          <h3 className="font-semibold mb-2">To Do ({todoTasks.length})</h3>
+          {todoTasks.map(task => (
+            <div key={task.id} className="bg-white p-2 rounded shadow-sm mb-2">
+              <div>{task.title}</div>
+              <div className="flex gap-1 mt-1">
+                <button onClick={() => moveTask(task.id, 'in_progress')} className="text-xs text-blue-500">→</button>
+                <button onClick={() => deleteTask(task.id)} className="text-xs text-red-500">×</button>
+              </div>
+            </div>
+          ))}
         </div>
-      )}
+        <div className="border rounded p-3">
+          <h3 className="font-semibold mb-2">In Progress ({inProgressTasks.length})</h3>
+          {inProgressTasks.map(task => (
+            <div key={task.id} className="bg-white p-2 rounded shadow-sm mb-2">
+              <div>{task.title}</div>
+              <div className="flex gap-1 mt-1">
+                <button onClick={() => moveTask(task.id, 'todo')} className="text-xs">←</button>
+                <button onClick={() => moveTask(task.id, 'done')} className="text-xs text-blue-500">→</button>
+                <button onClick={() => deleteTask(task.id)} className="text-xs text-red-500">×</button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="border rounded p-3">
+          <h3 className="font-semibold mb-2">Done ({doneTasks.length})</h3>
+          {doneTasks.map(task => (
+            <div key={task.id} className="bg-white p-2 rounded shadow-sm mb-2 line-through opacity-50">
+              <div>{task.title}</div>
+              <div className="flex gap-1 mt-1">
+                <button onClick={() => moveTask(task.id, 'in_progress')} className="text-xs">←</button>
+                <button onClick={() => deleteTask(task.id)} className="text-xs text-red-500">×</button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="border rounded p-3">
+          <h3 className="font-semibold mb-2">Blocked ({blockedTasks.length})</h3>
+          {blockedTasks.map(task => (
+            <div key={task.id} className="bg-white p-2 rounded shadow-sm mb-2">
+              <div>{task.title}</div>
+              <div className="flex gap-1 mt-1">
+                <button onClick={() => moveTask(task.id, 'todo')} className="text-xs">→</button>
+                <button onClick={() => deleteTask(task.id)} className="text-xs text-red-500">×</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
