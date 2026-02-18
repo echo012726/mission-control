@@ -2,6 +2,8 @@
 import './globals.css'
 import Link from 'next/link'
 
+const isDemo = process.env.NEXT_PUBLIC_MODE !== 'live'
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
@@ -9,7 +11,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div className="min-h-screen flex">
           <aside className="w-64 border-r p-4">
             <h1 className="text-xl font-bold mb-4">Mission Control</h1>
-            <span className="text-xs text-green-500">● Demo Mode</span>
+            <span className={`text-xs ${isDemo ? 'text-green-500' : 'text-blue-500'}`}>
+              ● {isDemo ? 'Demo Mode' : 'Live'}
+            </span>
             <nav className="flex flex-col gap-2 mt-2">
               <Link href="/" className="text-sm">Dashboard</Link>
               <Link href="/tasks" className="text-sm">Tasks</Link>
