@@ -1,14 +1,6 @@
-import { ConvexReactClient } from "convex/react";
-import { createContext, useContext } from "react";
-
-const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL || "";
-const convex = new ConvexReactClient(convexUrl);
-
-const ConvexContext = createContext(convex);
-
+// Convex client placeholder - functions called via HTTP API
+export const convex = null;
 export function ConvexClientProvider({ children }: { children: React.ReactNode }) {
-  return <ConvexContext.Provider value={convex}>{children}</ConvexContext.Provider>;
+  return <>{children}</>;
 }
-
-export function useConvex() { return useContext(ConvexContext); }
-export { convex };
+export function useConvex() { return null; }
