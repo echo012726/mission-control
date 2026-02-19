@@ -4,6 +4,7 @@ import Link from 'next/link'
 import SystemStatus from './components/SystemStatus'
 import QuickActions from './components/QuickActions'
 import WeatherWidget from './components/WeatherWidget'
+import EmailWidget from './components/EmailWidget'
 
 export default function Home() {
   const [taskCount, setTaskCount] = useState(0)
@@ -89,6 +90,7 @@ export default function Home() {
 
         <div className="space-y-4">
           <WeatherWidget />
+          <EmailWidget />
           <QuickActions />
           <SystemStatus />
         </div>
