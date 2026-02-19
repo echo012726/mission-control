@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import SystemStatus from './components/SystemStatus'
 import QuickActions from './components/QuickActions'
-import PolyBotWidget from './components/PolyBotWidget'
 import WeatherWidget from './components/WeatherWidget'
 
 export default function Home() {
@@ -89,7 +88,6 @@ export default function Home() {
         </div>
 
         <div className="space-y-4">
-          <PolyBotWidget />
           <WeatherWidget />
           <QuickActions />
           <SystemStatus />
