@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import SystemStatus from './components/SystemStatus'
 import QuickActions from './components/QuickActions'
+import PolyBotWidget from './components/PolyBotWidget'
+import WeatherWidget from './components/WeatherWidget'
 
 export default function Home() {
   const [taskCount, setTaskCount] = useState(0)
@@ -23,8 +25,8 @@ export default function Home() {
       <h2 className="text-2xl font-bold mb-2">Welcome to Mission Control</h2>
       <p className="text-muted-foreground mb-6">Your OpenClaw command center</p>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="lg:col-span-3 space-y-6">
           <div className="grid grid-cols-3 gap-4">
             <Link href="/tasks" className="block">
               <div className="p-4 border rounded-lg hover:border-blue-500 transition-colors">
@@ -87,6 +89,8 @@ export default function Home() {
         </div>
 
         <div className="space-y-4">
+          <PolyBotWidget />
+          <WeatherWidget />
           <QuickActions />
           <SystemStatus />
         </div>
