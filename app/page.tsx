@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useQuery } from 'convex/react'
-import { api } from './convex/_generated/api'
+import { api } from '../convex/_generated/api'
 import SystemStatus from './components/SystemStatus'
 import QuickActions from './components/QuickActions'
 import WeatherWidget from './components/WeatherWidget'
