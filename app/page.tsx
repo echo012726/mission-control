@@ -1,6 +1,8 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useQuery } from 'convex/react'
+import { api } from './convex/_generated/api'
 import SystemStatus from './components/SystemStatus'
 import QuickActions from './components/QuickActions'
 import WeatherWidget from './components/WeatherWidget'
@@ -9,18 +11,18 @@ import CronWidget from './components/CronWidget'
 import LinksWidget from './components/LinksWidget'
 
 export default function Home() {
-  const [taskCount, setTaskCount] = useState(0)
-  const [contentCount, setContentCount] = useState(0)
+  const tasks = useQuery(api.tasks.getTasks) || []
+  const content = useQuery(api.content.getContent) || []
+  
   const [eventCount, setEventCount] = useState(0)
 
   useEffect(() => {
-    const tasks = localStorage.getItem('mc_tasks')
-    const content = localStorage.getItem('mc_content')
     const events = localStorage.getItem('mc_events')
-    if (tasks) setTaskCount(JSON.parse(tasks).length)
-    if (content) setContentCount(JSON.parse(content).length)
     if (events) setEventCount(JSON.parse(events).length)
   }, [])
+
+  const taskCount = tasks.length
+  const contentCount = content.length
 
   return (
     <div>
