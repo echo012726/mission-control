@@ -1,0 +1,32 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Task {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  status      String   @default("inbox")
+  priority    String   @default("medium")
+  tags        String   @default("[]")
+  agentId     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ActivityLog {
+  id        String   @id @default(uuid())
+  type      String
+  payload   String?
+  createdAt DateTime @default(now())
+}
+
+model AuthToken {
+  id        String   @id @default(uuid())
+  tokenHash String
+  createdAt DateTime @default(now())
+}
