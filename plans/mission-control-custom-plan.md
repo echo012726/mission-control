@@ -61,21 +61,21 @@
 
 ### Week 7-8: Real-time & Webhooks
 
-- [ ] Add WebSocket for live updates (Pusher or Socket.io)
-- [ ] Implement webhook system for external integrations
-- [ ] Add webhook configuration UI
+- [x] Add WebSocket for live updates (Pusher or Socket.io) — Polling implemented as alternative
+- [x] Implement webhook system for external integrations
+- [x] Add webhook configuration UI
 
 ### Week 9-10: Metrics & Analytics
 
-- [ ] Build simple metrics dashboard
-- [ ] Track: tasks completed per day, agent uptime, avg task duration
+- [x] Build simple metrics dashboard
+- [x] Track: tasks completed per day, agent uptime, avg task duration
 - [ ] Add charts using Recharts
 
 ### Week 11-12: Polish
 
-- [ ] Mobile responsive layout
+- [x] Mobile responsive layout
 - [ ] Keyboard shortcuts
-- [ ] Task search and filter
+- [x] Task search and filter
 - [ ] Export tasks to CSV
 
 **Phase 3 Deliverable**: Full-featured production app
