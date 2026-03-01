@@ -12,6 +12,7 @@ interface Activity {
 const typeLabels: Record<string, string> = {
   task_created: 'Task created',
   task_moved: 'Task moved',
+  task_completed: 'Task completed',
   agent_heartbeat: 'Agent heartbeat',
   agent_error: 'Agent error',
   login: 'User logged in',
@@ -49,7 +50,8 @@ export default function ActivityFeed() {
     
     if (diff < 60) return `${diff}s ago`
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
-    return date.toLocaleTimeString()
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
+    return date.toLocaleDateString()
   }
 
   const getActivityDescription = (activity: Activity) => {
@@ -64,6 +66,12 @@ export default function ActivityFeed() {
       }
       if (activity.type === 'login') {
         return `${label}`
+      }
+      if (activity.type === 'agent_heartbeat') {
+        return `${label}: ${payload.agentId}`
+      }
+      if (activity.type === 'agent_error') {
+        return `${label}: ${payload.agentId} - ${payload.error}`
       }
     } catch {
       // Payload not JSON
@@ -80,7 +88,7 @@ export default function ActivityFeed() {
           disabled={loading}
           className="text-gray-400 hover:text-white disabled:opacity-50 text-sm"
         >
-          {loading ? 'Loading...' : 'Refresh'}
+          {loading ? 'Loading...' : '↻'}
         </button>
       </div>
       <div className="p-4 max-h-[300px] overflow-y-auto">

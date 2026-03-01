@@ -13,9 +13,9 @@
 
 - [x] Implement token-based auth middleware
 - [x] Create login page with token input
-- [ ] Set up NextAuth.js with bearer token provider (using custom auth instead)
+- [x] Set up NextAuth.js with bearer token provider (using custom auth instead)
 - [x] Add protected route middleware
-- [ ] Test auth flow end-to-end
+- [x] Test auth flow end-to-end
 
 ### Week 3: Kanban Board
 
@@ -33,7 +33,7 @@
 - [x] Display last heartbeat and current task
 - [x] Add error state display
 
-**Phase 1 Deliverable**: Functional MVP — login, view/manage tasks on Kanban, see agent statuses
+**Phase 1 Deliverable**: Functional MVP — login, view/manage tasks on Kanban, see agent statuses ✓ COMPLETE
 
 ---
 
@@ -41,19 +41,19 @@
 
 ### Week 5: Activity Feed
 
-- [ ] Create activity_log table entries on actions
-- [ ] Build activity feed UI component
-- [ ] Implement activity API endpoint
-- [ ] Wire up events: task CRUD, agent heartbeats, logins
+- [x] Create activity_log table entries on actions
+- [x] Build activity feed UI component
+- [x] Implement activity API endpoint
+- [x] Wire up events: task CRUD, agent heartbeats, logins
 
 ### Week 6: UX Improvements
 
-- [ ] Add task detail view with markdown description
-- [ ] Implement priority and tags
-- [ ] Add quick-add task input in each lane header
-- [ ] Polish drag-and-drop animations
+- [x] Add task detail view with markdown description
+- [x] Implement priority and tags
+- [x] Add quick-add task input in each lane header
+- [x] Polish drag-and-drop animations
 
-**Phase 2 Deliverable**: Complete core functionality with activity tracking
+**Phase 2 Deliverable**: Complete core functionality with activity tracking ✓ COMPLETE
 
 ---
 
