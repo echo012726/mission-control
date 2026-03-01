@@ -5,13 +5,36 @@ export interface Task {
   status: string // 'inbox' | 'planned' | 'in_progress' | 'blocked' | 'done'
   priority: string // 'low' | 'medium' | 'high'
   tags: string // JSON array of tags
+  labels: string // JSON array of label IDs
   agentId?: string
   dependsOn: string // JSON array of task IDs
   dueDate?: string | null
+  timeSpent: number // Time spent in seconds
+  timerStarted?: string | null // ISO timestamp
+  recurrence?: string | null // null, daily, weekly, monthly
+  recurrenceCount: number
   createdAt: string
   updatedAt: string
   comments?: TaskComment[]
   attachments?: TaskAttachment[]
+  subtasks?: SubTask[]
+}
+
+export interface SubTask {
+  id: string
+  taskId: string
+  title: string
+  completed: boolean
+  completedAt?: string | null
+  order: number
+  createdAt: string
+}
+
+export interface Label {
+  id: string
+  name: string
+  color: string
+  createdAt: string
 }
 
 export interface TaskComment {

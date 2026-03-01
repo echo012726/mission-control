@@ -9,12 +9,14 @@ import MetricsDashboard from '@/components/MetricsDashboard'
 import WebhooksPanel from '@/components/WebhooksPanel'
 import ApprovalsPanel from '@/components/ApprovalsPanel'
 import CronJobMonitor from '@/components/CronJobMonitor'
-import { LayoutDashboard, ListTodo, Activity, Webhook, Shield, Bot, Clock } from 'lucide-react'
+import DashboardWidgets from '@/components/DashboardWidgets'
+import { LayoutDashboard, ListTodo, Activity, Webhook, Shield, Bot, Clock, Layout } from 'lucide-react'
 
-type Tab = 'tasks' | 'metrics' | 'webhooks' | 'approvals' | 'cron'
+type Tab = 'tasks' | 'dashboard' | 'metrics' | 'webhooks' | 'approvals' | 'cron'
 
 const tabs: { id: Tab; label: string; icon: typeof ListTodo }[] = [
   { id: 'tasks', label: 'Tasks', icon: ListTodo },
+  { id: 'dashboard', label: 'Dashboard', icon: Layout },
   { id: 'metrics', label: 'Metrics', icon: LayoutDashboard },
   { id: 'cron', label: 'Cron', icon: Clock },
   { id: 'webhooks', label: 'Webhooks', icon: Webhook },
@@ -64,6 +66,17 @@ export default function Home() {
               <KanbanBoard />
             </div>
             <div className="space-y-4 lg:space-y-6">
+              <AgentStatusPanel onAgentClick={setSelectedAgentId} />
+              <ActivityFeed />
+            </div>
+          </div>
+        )}
+
+        {/* Dashboard Tab */}
+        {activeTab === 'dashboard' && (
+          <div className="space-y-6">
+            <DashboardWidgets />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <AgentStatusPanel onAgentClick={setSelectedAgentId} />
               <ActivityFeed />
             </div>

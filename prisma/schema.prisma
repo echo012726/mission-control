@@ -13,14 +13,45 @@ model Task {
   description  String?
   status       String    @default("inbox")
   priority     String    @default("medium")
-  tags         String    @default("[]")
+  tags         String    @default("[]")       // JSON array of tag names
+  labels       String    @default("[]")       // JSON array of label IDs
   agentId      String?
-  dependsOn    String    @default("[]") // JSON array of task IDs this task depends on
+  dependsOn    String    @default("[]")      // JSON array of task IDs this task depends on
   dueDate      DateTime?
+  
+  // Time tracking
+  timeSpent    Int       @default(0)          // Time spent in seconds
+  timerStarted String?                        // ISO timestamp when timer started
+  
+  // Recurring tasks
+  recurrence   String?                        // null, daily, weekly, monthly
+  recurrenceCount Int   @default(0)          // How many times this has recurred
+  
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   comments     TaskComment[]
   attachments  TaskAttachment[]
+  subtasks     SubTask[]
+}
+
+// Subtasks - checklist items within a task
+model SubTask {
+  id          String   @id @default(uuid())
+  taskId      String
+  title       String
+  completed   Boolean  @default(false)
+  completedAt DateTime?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+// Color-coded labels/categories
+model Label {
+  id        String   @id @default(uuid())
+  name      String
+  color     String   @default("#6366f1")  // Hex color
+  createdAt DateTime @default(now())
 }
 
 model TaskComment {

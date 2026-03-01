@@ -19,8 +19,8 @@ import {
   useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Plus, GripVertical, Search, X, Tag, Download, Loader2, ChevronLeft, ChevronRight, Calendar, MessageSquare, Paperclip, Clock, Trash2 } from 'lucide-react'
-import { Task, TaskComment, TaskAttachment } from '@/types'
+import { Plus, GripVertical, Search, X, Tag, Download, Loader2, ChevronLeft, ChevronRight, Calendar, MessageSquare, Paperclip, Clock, Trash2, Play, Pause, Repeat, Check, ListChecks, GripHorizontal } from 'lucide-react'
+import { Task, TaskComment, TaskAttachment, SubTask, Label } from '@/types'
 import { useToast } from '@/components/Toast'
 import { useSSE } from '@/lib/useSSE'
 
@@ -33,6 +33,23 @@ const LANES = [
 ]
 
 const PRIORITIES = ['low', 'medium', 'high']
+const RECURRENCE_OPTIONS = [
+  { value: '', label: 'No repeat' },
+  { value: 'daily', label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'monthly', label: 'Monthly' },
+]
+
+// Format seconds to human readable time
+function formatTime(seconds: number): string {
+  if (seconds === 0) return '0m'
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`
+  }
+  return `${minutes}m`
+}
 
 function TaskCard({ task, onEdit, isSelected }: { task: Task; onEdit: (task: Task) => void; isSelected?: boolean }) {
   const {
@@ -56,6 +73,7 @@ function TaskCard({ task, onEdit, isSelected }: { task: Task; onEdit: (task: Tas
   }
 
   const tags = task.tags ? (typeof task.tags === 'string' ? JSON.parse(task.tags) : task.tags) : []
+  const subtasks = task.subtasks || []
 
   // Check if due date is overdue
   const isOverdue = task.dueDate && new Date(task.dueDate) < new Date()
@@ -72,6 +90,10 @@ function TaskCard({ task, onEdit, isSelected }: { task: Task; onEdit: (task: Tas
     if (date.toDateString() === tomorrow.toDateString()) return 'Tomorrow'
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   }
+
+  // Check if timer is running
+  const isTimerRunning = !!task.timerStarted
+  const completedSubtasks = subtasks.filter((st: SubTask) => st.completed).length
 
   return (
     <div
@@ -109,6 +131,30 @@ function TaskCard({ task, onEdit, isSelected }: { task: Task; onEdit: (task: Tas
                 {tag}
               </span>
             ))}
+            {/* Timer indicator */}
+            {isTimerRunning && (
+              <span className="text-xs px-2 py-0.5 rounded bg-green-600/50 text-green-200 flex items-center gap-1">
+                <Play size={10} /> Running
+              </span>
+            )}
+            {/* Time spent */}
+            {!isTimerRunning && task.timeSpent > 0 && (
+              <span className="text-xs px-2 py-0.5 rounded bg-gray-600/50 text-gray-300 flex items-center gap-1">
+                <Clock size={10} /> {formatTime(task.timeSpent)}
+              </span>
+            )}
+            {/* Subtasks progress */}
+            {subtasks.length > 0 && (
+              <span className="text-xs px-2 py-0.5 rounded bg-blue-600/50 text-blue-200 flex items-center gap-1">
+                <ListChecks size={10} /> {completedSubtasks}/{subtasks.length}
+              </span>
+            )}
+            {/* Recurrence indicator */}
+            {task.recurrence && (
+              <span className="text-xs px-2 py-0.5 rounded bg-orange-600/50 text-orange-200 flex items-center gap-1">
+                <Repeat size={10} /> {task.recurrence}
+              </span>
+            )}
           </div>
           {task.dueDate && (
             <div className={`flex items-center gap-1 mt-2 text-xs ${isOverdue ? 'text-red-400' : 'text-gray-400'}`}>
@@ -180,17 +226,29 @@ export default function KanbanBoard() {
     description: '', 
     priority: 'medium',
     tags: '',
-    dueDate: ''
+    dueDate: '',
+    recurrence: ''
   })
   
   // Comments and attachments state
   const [comments, setComments] = useState<TaskComment[]>([])
   const [attachments, setAttachments] = useState<TaskAttachment[]>([])
+  const [subtasks, setSubtasks] = useState<SubTask[]>([])
   const [newComment, setNewComment] = useState('')
+  const [newSubtask, setNewSubtask] = useState('')
   const [loadingComments, setLoadingComments] = useState(false)
   const [loadingAttachments, setLoadingAttachments] = useState(false)
   const [uploadingFile, setUploadingFile] = useState(false)
-  const [activeTaskTab, setActiveTaskTab] = useState<'details' | 'comments' | 'attachments'>('details')
+  const [activeTaskTab, setActiveTaskTab] = useState<'details' | 'subtasks' | 'comments' | 'attachments'>('details')
+  
+  // Labels state
+  const [labels, setLabels] = useState<Label[]>([])
+  const [showLabelManager, setShowLabelManager] = useState(false)
+  const [newLabelName, setNewLabelName] = useState('')
+  const [newLabelColor, setNewLabelColor] = useState('#6366f1')
+  
+  // Timer state
+  const [timerRunning, setTimerRunning] = useState(false)
   
   // Search and filter state
   const [searchQuery, setSearchQuery] = useState('')
@@ -402,11 +460,12 @@ export default function KanbanBoard() {
           status: newTaskStatus,
           tags: JSON.stringify(tagsArray),
           dueDate: newTask.dueDate || null,
+          recurrence: newTask.recurrence || null,
         }),
       })
       if (res.ok) {
         showToast('Task created successfully', 'success')
-        setNewTask({ title: '', description: '', priority: 'medium', tags: '', dueDate: '' })
+        setNewTask({ title: '', description: '', priority: 'medium', tags: '', dueDate: '', recurrence: '' })
         setShowAddModal(false)
         fetchTasks()
       } else {
@@ -488,6 +547,13 @@ export default function KanbanBoard() {
         const data = await attachmentsRes.json()
         setAttachments(data)
       }
+
+      // Fetch subtasks
+      const subtasksRes = await fetch(`/api/tasks/${taskId}/subtasks`)
+      if (subtasksRes.ok) {
+        const data = await subtasksRes.json()
+        setSubtasks(data)
+      }
     } catch (e) {
       console.error('Failed to fetch task details', e)
     } finally {
@@ -496,10 +562,28 @@ export default function KanbanBoard() {
     }
   }
 
+  // Fetch labels
+  const fetchLabels = async () => {
+    try {
+      const res = await fetch('/api/labels')
+      if (res.ok) {
+        const data = await res.json()
+        setLabels(data)
+      }
+    } catch (e) {
+      console.error('Failed to fetch labels', e)
+    }
+  }
+
+  useEffect(() => {
+    fetchLabels()
+  }, [])
+
   // Open task modal - fetch comments and attachments
   const openTaskModal = async (task: Task) => {
     setEditingTask(task)
     setActiveTaskTab('details')
+    setTimerRunning(!!task.timerStarted)
     await fetchTaskDetails(task.id)
   }
 
@@ -632,6 +716,209 @@ export default function KanbanBoard() {
       }
     } catch (e) {
       console.error('Failed to update due date', e)
+    }
+  }
+
+  // Handle timer start/stop
+  const handleTimerToggle = async () => {
+    if (!editingTask) return
+    
+    try {
+      if (timerRunning) {
+        // Stop timer
+        const res = await fetch(`/api/tasks/${editingTask.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stopTimer: true }),
+        })
+        if (res.ok) {
+          const updatedTask = await res.json()
+          setEditingTask(updatedTask)
+          setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t))
+          setTimerRunning(false)
+          showToast('Timer stopped', 'success')
+        }
+      } else {
+        // Start timer
+        const res = await fetch(`/api/tasks/${editingTask.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ startTimer: true }),
+        })
+        if (res.ok) {
+          const updatedTask = await res.json()
+          setEditingTask(updatedTask)
+          setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t))
+          setTimerRunning(true)
+          showToast('Timer started', 'success')
+        }
+      }
+    } catch (e) {
+      console.error('Failed to toggle timer', e)
+      showToast('Failed to toggle timer', 'error')
+    }
+  }
+
+  // Handle recurrence - create next occurrence
+  const handleCreateNextRecurrence = async () => {
+    if (!editingTask) return
+    
+    try {
+      const res = await fetch(`/api/tasks/${editingTask.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ createNextRecurrence: true }),
+      })
+      if (res.ok) {
+        const newTask = await res.json()
+        setTasks(prev => [newTask, ...prev])
+        showToast('Next recurrence created', 'success')
+        // Close current task modal and open the new one
+        setEditingTask(null)
+        await fetchTaskDetails(newTask.id)
+        setEditingTask(newTask)
+      }
+    } catch (e) {
+      console.error('Failed to create recurrence', e)
+      showToast('Failed to create recurrence', 'error')
+    }
+  }
+
+  // Handle adding a subtask
+  const handleAddSubtask = async () => {
+    if (!editingTask || !newSubtask.trim()) return
+    
+    try {
+      const res = await fetch(`/api/tasks/${editingTask.id}/subtasks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newSubtask.trim() }),
+      })
+      if (res.ok) {
+        const subtask = await res.json()
+        setSubtasks(prev => [...prev, subtask])
+        setNewSubtask('')
+        // Update task in list to include the new subtask
+        setTasks(prev => prev.map(t => {
+          if (t.id === editingTask.id) {
+            return { ...t, subtasks: [...(t.subtasks || []), subtask] }
+          }
+          return t
+        }))
+        showToast('Subtask added', 'success')
+      }
+    } catch (e) {
+      console.error('Failed to add subtask', e)
+      showToast('Failed to add subtask', 'error')
+    }
+  }
+
+  // Handle subtask toggle
+  const handleToggleSubtask = async (subtaskId: string, completed: boolean) => {
+    if (!editingTask) return
+    
+    try {
+      const res = await fetch(`/api/tasks/${editingTask.id}/subtasks/${subtaskId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completed: !completed }),
+      })
+      if (res.ok) {
+        const updatedSubtask = await res.json()
+        setSubtasks(prev => prev.map(st => st.id === subtaskId ? updatedSubtask : st))
+        // Update task in list
+        setTasks(prev => prev.map(t => {
+          if (t.id === editingTask.id) {
+            return {
+              ...t,
+              subtasks: t.subtasks?.map(st => st.id === subtaskId ? updatedSubtask : st)
+            }
+          }
+          return t
+        }))
+      }
+    } catch (e) {
+      console.error('Failed to toggle subtask', e)
+    }
+  }
+
+  // Handle subtask delete
+  const handleDeleteSubtask = async (subtaskId: string) => {
+    if (!editingTask) return
+    
+    try {
+      const res = await fetch(`/api/tasks/${editingTask.id}/subtasks/${subtaskId}`, {
+        method: 'DELETE',
+      })
+      if (res.ok) {
+        setSubtasks(prev => prev.filter(st => st.id !== subtaskId))
+        setTasks(prev => prev.map(t => {
+          if (t.id === editingTask.id) {
+            return { ...t, subtasks: t.subtasks?.filter(st => st.id !== subtaskId) }
+          }
+          return t
+        }))
+        showToast('Subtask deleted', 'success')
+      }
+    } catch (e) {
+      console.error('Failed to delete subtask', e)
+    }
+  }
+
+  // Handle labels update
+  const handleUpdateLabels = async (labelIds: string[]) => {
+    if (!editingTask) return
+    
+    try {
+      const res = await fetch(`/api/tasks/${editingTask.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ labels: JSON.stringify(labelIds) }),
+      })
+      if (res.ok) {
+        const updatedTask = await res.json()
+        setEditingTask(updatedTask)
+        setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t))
+      }
+    } catch (e) {
+      console.error('Failed to update labels', e)
+    }
+  }
+
+  // Handle add label
+  const handleAddLabel = async () => {
+    if (!newLabelName.trim()) return
+    
+    try {
+      const res = await fetch('/api/labels', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newLabelName.trim(), color: newLabelColor }),
+      })
+      if (res.ok) {
+        const label = await res.json()
+        setLabels(prev => [...prev, label])
+        setNewLabelName('')
+        showToast('Label created', 'success')
+      }
+    } catch (e) {
+      console.error('Failed to create label', e)
+      showToast('Failed to create label', 'error')
+    }
+  }
+
+  // Handle delete label
+  const handleDeleteLabel = async (labelId: string) => {
+    try {
+      const res = await fetch(`/api/labels/${labelId}`, {
+        method: 'DELETE',
+      })
+      if (res.ok) {
+        setLabels(prev => prev.filter(l => l.id !== labelId))
+        showToast('Label deleted', 'success')
+      }
+    } catch (e) {
+      console.error('Failed to delete label', e)
     }
   }
 
@@ -848,6 +1135,19 @@ export default function KanbanBoard() {
                 className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1"
               />
             </div>
+            <div className="flex items-center gap-2 mb-4">
+              <Repeat size={16} className="text-gray-500" />
+              <label className="text-gray-400 text-sm">Repeat:</label>
+              <select
+                value={newTask.recurrence}
+                onChange={(e) => setNewTask({ ...newTask, recurrence: e.target.value })}
+                className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1"
+              >
+                {RECURRENCE_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
             <div className="flex gap-2">
               <button
                 onClick={handleAddTask}
@@ -873,10 +1173,10 @@ export default function KanbanBoard() {
             <h2 className="text-xl font-bold text-white mb-4">Edit Task</h2>
             
             {/* Tabs */}
-            <div className="flex border-b border-gray-700 mb-4">
+            <div className="flex border-b border-gray-700 mb-4 overflow-x-auto">
               <button
                 onClick={() => setActiveTaskTab('details')}
-                className={`px-4 py-2 text-sm transition-colors ${
+                className={`px-4 py-2 text-sm transition-colors whitespace-nowrap ${
                   activeTaskTab === 'details' 
                     ? 'text-blue-400 border-b-2 border-blue-400' 
                     : 'text-gray-400 hover:text-white'
@@ -885,8 +1185,19 @@ export default function KanbanBoard() {
                 Details
               </button>
               <button
+                onClick={() => setActiveTaskTab('subtasks')}
+                className={`px-4 py-2 text-sm transition-colors flex items-center gap-1 whitespace-nowrap ${
+                  activeTaskTab === 'subtasks' 
+                    ? 'text-blue-400 border-b-2 border-blue-400' 
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <ListChecks size={14} />
+                Subtasks {subtasks.length > 0 && `(${subtasks.filter(s => s.completed).length}/${subtasks.length})`}
+              </button>
+              <button
                 onClick={() => setActiveTaskTab('comments')}
-                className={`px-4 py-2 text-sm transition-colors flex items-center gap-1 ${
+                className={`px-4 py-2 text-sm transition-colors flex items-center gap-1 whitespace-nowrap ${
                   activeTaskTab === 'comments' 
                     ? 'text-blue-400 border-b-2 border-blue-400' 
                     : 'text-gray-400 hover:text-white'
@@ -897,7 +1208,7 @@ export default function KanbanBoard() {
               </button>
               <button
                 onClick={() => setActiveTaskTab('attachments')}
-                className={`px-4 py-2 text-sm transition-colors flex items-center gap-1 ${
+                className={`px-4 py-2 text-sm transition-colors flex items-center gap-1 whitespace-nowrap ${
                   activeTaskTab === 'attachments' 
                     ? 'text-blue-400 border-b-2 border-blue-400' 
                     : 'text-gray-400 hover:text-white'
@@ -973,6 +1284,242 @@ export default function KanbanBoard() {
                       className="w-full bg-gray-800 border border-gray-700 rounded pl-9 pr-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
+
+                  {/* Labels */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Tag size={16} className="text-gray-500" />
+                      <label className="text-gray-400 text-sm">Labels:</label>
+                      <button
+                        onClick={() => setShowLabelManager(!showLabelManager)}
+                        className="text-xs text-blue-400 hover:text-blue-300"
+                      >
+                        {showLabelManager ? 'Hide' : 'Manage'}
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {labels.map((label) => {
+                        const taskLabels = editingTask.labels ? JSON.parse(editingTask.labels) : []
+                        const isSelected = taskLabels.includes(label.id)
+                        return (
+                          <button
+                            key={label.id}
+                            onClick={() => {
+                              const newLabels = isSelected
+                                ? taskLabels.filter((l: string) => l !== label.id)
+                                : [...taskLabels, label.id]
+                              handleUpdateLabels(newLabels)
+                            }}
+                            className={`text-xs px-2 py-1 rounded transition-colors ${
+                              isSelected 
+                                ? 'text-white' 
+                                : 'bg-gray-800 text-gray-400 hover:text-white'
+                            }`}
+                            style={isSelected ? { backgroundColor: label.color } : {}}
+                          >
+                            {label.name}
+                          </button>
+                        )
+                      })}
+                      {labels.length === 0 && (
+                        <span className="text-gray-500 text-xs">No labels created yet</span>
+                      )}
+                    </div>
+                    {/* Label manager */}
+                    {showLabelManager && (
+                      <div className="mt-3 p-3 bg-gray-800 rounded border border-gray-700">
+                        <p className="text-xs text-gray-400 mb-2">Create new label:</p>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="Label name"
+                            value={newLabelName}
+                            onChange={(e) => setNewLabelName(e.target.value)}
+                            className="flex-1 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <input
+                            type="color"
+                            value={newLabelColor}
+                            onChange={(e) => setNewLabelColor(e.target.value)}
+                            className="w-8 h-8 rounded cursor-pointer"
+                          />
+                          <button
+                            onClick={handleAddLabel}
+                            disabled={!newLabelName.trim()}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-sm disabled:opacity-50"
+                          >
+                            Add
+                          </button>
+                        </div>
+                        {labels.length > 0 && (
+                          <div className="mt-2 pt-2 border-t border-gray-700">
+                            <p className="text-xs text-gray-400 mb-1">Existing labels:</p>
+                            <div className="flex flex-wrap gap-1">
+                              {labels.map((label) => (
+                                <span
+                                  key={label.id}
+                                  className="text-xs px-2 py-0.5 rounded flex items-center gap-1"
+                                  style={{ backgroundColor: label.color + '40', color: label.color }}
+                                >
+                                  {label.name}
+                                  <button
+                                    onClick={() => handleDeleteLabel(label.id)}
+                                    className="hover:text-red-400"
+                                  >
+                                    <X size={10} />
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Time Tracking */}
+                  <div className="bg-gray-800 rounded p-3 border border-gray-700">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Clock size={16} className="text-gray-500" />
+                        <span className="text-gray-400 text-sm">Time Tracking:</span>
+                      </div>
+                      <button
+                        onClick={handleTimerToggle}
+                        className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
+                          timerRunning 
+                            ? 'bg-red-600 hover:bg-red-700 text-white' 
+                            : 'bg-green-600 hover:bg-green-700 text-white'
+                        }`}
+                      >
+                        {timerRunning ? <Pause size={12} /> : <Play size={12} />}
+                        {timerRunning ? 'Stop' : 'Start'}
+                      </button>
+                    </div>
+                    <div className="text-center">
+                      <span className="text-2xl font-mono text-white">
+                        {formatTime(editingTask.timeSpent || 0)}
+                      </span>
+                      {editingTask.timerStarted && (
+                        <div className="text-xs text-green-400 mt-1 flex items-center justify-center gap-1">
+                          <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                          Timer running
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Recurrence */}
+                  <div className="flex items-center gap-2">
+                    <Repeat size={16} className="text-gray-500" />
+                    <label className="text-gray-400 text-sm">Repeat:</label>
+                    <select
+                      value={editingTask.recurrence || ''}
+                      onChange={(e) => {
+                        setEditingTask({ ...editingTask, recurrence: e.target.value || null })
+                      }}
+                      onBlur={async () => {
+                        try {
+                          const res = await fetch(`/api/tasks/${editingTask.id}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ recurrence: editingTask.recurrence }),
+                          })
+                          if (res.ok) {
+                            const updatedTask = await res.json()
+                            setEditingTask(updatedTask)
+                            setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t))
+                          }
+                        } catch (e) {
+                          console.error('Failed to update recurrence', e)
+                        }
+                      }}
+                      className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1"
+                    >
+                      {RECURRENCE_OPTIONS.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                    {editingTask.recurrence && (
+                      <button
+                        onClick={handleCreateNextRecurrence}
+                        className="text-xs bg-orange-600 hover:bg-orange-700 text-white px-2 py-2 rounded"
+                        title="Create next occurrence now"
+                      >
+                        +Next
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {activeTaskTab === 'subtasks' && (
+                <div className="space-y-3">
+                  {/* Add subtask */}
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newSubtask}
+                      onChange={(e) => setNewSubtask(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddSubtask()}
+                      placeholder="Add a subtask..."
+                      className="flex-1 bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <button
+                      onClick={handleAddSubtask}
+                      disabled={!newSubtask.trim()}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded disabled:opacity-50 transition-colors"
+                    >
+                      <Plus size={16} />
+                    </button>
+                  </div>
+
+                  {/* Subtasks list */}
+                  {subtasks.length === 0 ? (
+                    <p className="text-gray-500 text-sm text-center py-4">No subtasks yet. Break down this task!</p>
+                  ) : (
+                    <div className="space-y-2 max-h-[300px] overflow-auto">
+                      {subtasks.map((subtask) => (
+                        <div key={subtask.id} className="bg-gray-800 rounded p-3 flex items-center gap-2">
+                          <button
+                            onClick={() => handleToggleSubtask(subtask.id, subtask.completed)}
+                            className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${
+                              subtask.completed 
+                                ? 'bg-green-600 border-green-600 text-white' 
+                                : 'border-gray-600 hover:border-gray-500'
+                            }`}
+                          >
+                            {subtask.completed && <Check size={14} />}
+                          </button>
+                          <span className={`flex-1 text-sm ${subtask.completed ? 'text-gray-500 line-through' : 'text-white'}`}>
+                            {subtask.title}
+                          </span>
+                          <button
+                            onClick={() => handleDeleteSubtask(subtask.id)}
+                            className="text-gray-500 hover:text-red-400"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Progress bar */}
+                  {subtasks.length > 0 && (
+                    <div className="mt-3">
+                      <div className="flex justify-between text-xs text-gray-400 mb-1">
+                        <span>Progress</span>
+                        <span>{subtasks.filter(s => s.completed).length}/{subtasks.length}</span>
+                      </div>
+                      <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-green-500 transition-all"
+                          style={{ width: `${(subtasks.filter(s => s.completed).length / subtasks.length) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
