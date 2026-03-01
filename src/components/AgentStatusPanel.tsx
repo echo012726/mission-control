@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { RefreshCw, Circle } from 'lucide-react'
+import { RefreshCw, Circle, Play, Square, Loader2 } from 'lucide-react'
 import { Agent } from '@/types'
 
 function StatusBadge({ status }: { status: string }) {
@@ -23,6 +23,7 @@ function StatusBadge({ status }: { status: string }) {
 export default function AgentStatusPanel() {
   const [agents, setAgents] = useState<Agent[]>([])
   const [loading, setLoading] = useState(false)
+  const [provisioning, setProvisioning] = useState<string | null>(null)
 
   const fetchAgents = async () => {
     setLoading(true)
@@ -44,6 +45,24 @@ export default function AgentStatusPanel() {
     const interval = setInterval(fetchAgents, 10000)
     return () => clearInterval(interval)
   }, [])
+
+  const handleProvision = async (agentId: string, action: 'start' | 'stop') => {
+    setProvisioning(agentId)
+    try {
+      const res = await fetch('/api/agents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agentId, action }),
+      })
+      if (res.ok) {
+        fetchAgents()
+      }
+    } catch (e) {
+      console.error(`Failed to ${action} agent`, e)
+    } finally {
+      setProvisioning(null)
+    }
+  }
 
   const formatTime = (timestamp?: number) => {
     if (!timestamp) return 'Never'
@@ -75,19 +94,50 @@ export default function AgentStatusPanel() {
           <div className="space-y-3">
             {agents.map((agent) => (
               <div key={agent.id} className="flex items-start justify-between">
-                <div>
-                  <p className="text-white text-sm font-medium">{agent.id}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-white text-sm font-medium truncate">{agent.id}</p>
                   <StatusBadge status={agent.status} />
                   {agent.currentTask && (
-                    <p className="text-gray-400 text-xs mt-1">Task: {agent.currentTask}</p>
+                    <p className="text-gray-400 text-xs mt-1 truncate">Task: {agent.currentTask}</p>
                   )}
                   {agent.error && (
-                    <p className="text-red-400 text-xs mt-1">Error: {agent.error}</p>
+                    <p className="text-red-400 text-xs mt-1 truncate">Error: {agent.error}</p>
                   )}
                 </div>
-                <span className="text-gray-500 text-xs">
-                  {formatTime(agent.lastHeartbeat)}
-                </span>
+                <div className="flex flex-col items-end gap-1 ml-2">
+                  <span className="text-gray-500 text-xs">
+                    {formatTime(agent.lastHeartbeat)}
+                  </span>
+                  <div className="flex gap-1">
+                    {agent.status === 'idle' || agent.status === 'error' ? (
+                      <button
+                        onClick={() => handleProvision(agent.id, 'start')}
+                        disabled={provisioning === agent.id}
+                        className="p-1 text-green-400 hover:text-green-300 disabled:opacity-50"
+                        title="Start agent"
+                      >
+                        {provisioning === agent.id ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          <Play size={14} />
+                        )}
+                      </button>
+                    ) : agent.status === 'running' ? (
+                      <button
+                        onClick={() => handleProvision(agent.id, 'stop')}
+                        disabled={provisioning === agent.id}
+                        className="p-1 text-red-400 hover:text-red-300 disabled:opacity-50"
+                        title="Stop agent"
+                      >
+                        {provisioning === agent.id ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          <Square size={14} />
+                        )}
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
               </div>
             ))}
           </div>
