@@ -8,13 +8,37 @@ datasource db {
 }
 
 model Task {
+  id           String   @id @default(uuid())
+  title        String
+  description  String?
+  status       String   @default("inbox")
+  priority     String   @default("medium")
+  tags         String   @default("[]")
+  agentId      String?
+  dependsOn    String   @default("[]") // JSON array of task IDs this task depends on
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Webhook {
+  id        String   @id @default(uuid())
+  name      String
+  url       String
+  events    String   @default("[]") // JSON array of event types
+  enabled   Boolean  @default(true)
+  secret    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Approval {
   id          String   @id @default(uuid())
-  title       String
-  description String?
-  status      String   @default("inbox")
-  priority    String   @default("medium")
-  tags        String   @default("[]")
-  agentId     String?
+  taskId      String
+  type        String   // task_completion, agent_provisioning
+  status      String   @default("pending") // pending, approved, rejected
+  requestedBy String?
+  reviewedBy  String?
+  reason      String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

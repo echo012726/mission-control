@@ -4,10 +4,43 @@ export interface Task {
   description?: string
   status: string // 'inbox' | 'planned' | 'in_progress' | 'blocked' | 'done'
   priority: string // 'low' | 'medium' | 'high'
-  tags: string
+  tags: string // JSON array of tags
   agentId?: string
+  dependsOn: string // JSON array of task IDs
   createdAt: string
   updatedAt: string
+}
+
+export interface Webhook {
+  id: string
+  name: string
+  url: string
+  events: string // JSON array
+  enabled: boolean
+  secret?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Approval {
+  id: string
+  taskId: string
+  type: string
+  status: string
+  requestedBy?: string
+  reviewedBy?: string
+  reason?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Metrics {
+  totalTasks: number
+  completedTasks: number
+  tasksByStatus: Record<string, number>
+  tasksByPriority: Record<string, number>
+  completionRate: number
+  avgCompletionTime?: number
 }
 
 export interface Agent {

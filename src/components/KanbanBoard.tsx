@@ -18,7 +18,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Plus, GripVertical } from 'lucide-react'
+import { Plus, GripVertical, Search, X, Tag } from 'lucide-react'
 import { Task } from '@/types'
 
 const LANES = [
@@ -28,6 +28,8 @@ const LANES = [
   { id: 'blocked', label: 'Blocked', color: 'border-red-500' },
   { id: 'done', label: 'Done', color: 'border-green-500' },
 ]
+
+const PRIORITIES = ['low', 'medium', 'high']
 
 function TaskCard({ task, onEdit }: { task: Task; onEdit: (task: Task) => void }) {
   const {
@@ -50,12 +52,14 @@ function TaskCard({ task, onEdit }: { task: Task; onEdit: (task: Task) => void }
     high: 'bg-red-600',
   }
 
+  const tags = task.tags ? JSON.parse(task.tags) : []
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`bg-gray-800 rounded p-3 mb-2 cursor-pointer hover:bg-gray-750 ${
-        isDragging ? 'opacity-50' : ''
+      className={`bg-gray-800 rounded p-3 mb-2 cursor-pointer hover:bg-gray-750 touch-manipulation ${
+        isDragging ? 'opacity-50 z-50' : ''
       }`}
       onClick={() => onEdit(task)}
     >
@@ -63,7 +67,7 @@ function TaskCard({ task, onEdit }: { task: Task; onEdit: (task: Task) => void }
         <button
           {...attributes}
           {...listeners}
-          className="mt-1 text-gray-500 hover:text-gray-400 cursor-grab"
+          className="mt-1 text-gray-500 hover:text-gray-400 cursor-grab active:cursor-grabbing"
         >
           <GripVertical size={14} />
         </button>
@@ -72,12 +76,20 @@ function TaskCard({ task, onEdit }: { task: Task; onEdit: (task: Task) => void }
           {task.description && (
             <p className="text-gray-400 text-xs mt-1 line-clamp-2">{task.description}</p>
           )}
-          <div className="flex items-center gap-2 mt-2">
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
             <span
               className={`text-xs px-2 py-0.5 rounded ${priorityColors[task.priority as keyof typeof priorityColors] || priorityColors.medium}`}
             >
               {task.priority}
             </span>
+            {tags.length > 0 && tags.map((tag: string, idx: number) => (
+              <span
+                key={idx}
+                className="text-xs px-2 py-0.5 rounded bg-purple-600/50 text-purple-200"
+              >
+                {tag}
+              </span>
+            ))}
           </div>
         </div>
       </div>
@@ -99,16 +111,16 @@ function Lane({
   const { setNodeRef } = useSortable({ id: lane.id })
 
   return (
-    <div className="flex-1 min-w-[250px] max-w-[300px]">
+    <div className="flex-shrink-0 w-[85vw] sm:w-[280px] md:min-w-[250px] md:max-w-[300px]">
       <div className={`border-t-2 ${lane.color} px-3 py-2 bg-gray-900 rounded-t`}>
         <div className="flex items-center justify-between">
-          <h3 className="font-medium text-white">{lane.label}</h3>
+          <h3 className="font-medium text-white text-sm sm:text-base">{lane.label}</h3>
           <span className="text-gray-400 text-sm">{tasks.length}</span>
         </div>
       </div>
       <div
         ref={setNodeRef}
-        className="bg-gray-900/50 p-2 rounded-b min-h-[200px]"
+        className="bg-gray-900/50 p-2 rounded-b min-h-[150px] sm:min-h-[200px]"
       >
         <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
           {tasks.map((task) => (
@@ -132,7 +144,17 @@ export default function KanbanBoard() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [newTaskStatus, setNewTaskStatus] = useState('inbox')
   const [editingTask, setEditingTask] = useState<Task | null>(null)
-  const [newTask, setNewTask] = useState({ title: '', description: '', priority: 'medium' })
+  const [newTask, setNewTask] = useState({ 
+    title: '', 
+    description: '', 
+    priority: 'medium',
+    tags: ''
+  })
+  
+  // Search and filter state
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filterPriority, setFilterPriority] = useState('')
+  const [filterTags, setFilterTags] = useState('')
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -142,7 +164,14 @@ export default function KanbanBoard() {
 
   const fetchTasks = async () => {
     try {
-      const res = await fetch('/api/tasks')
+      // Build query params for filtering
+      const params = new URLSearchParams()
+      if (searchQuery) params.set('q', searchQuery)
+      if (filterPriority) params.set('priority', filterPriority)
+      if (filterTags) params.set('tags', filterTags)
+      
+      const url = params.toString() ? `/api/tasks/search?${params}` : '/api/tasks'
+      const res = await fetch(url)
       if (res.ok) {
         const data = await res.json()
         setTasks(data)
@@ -155,6 +184,14 @@ export default function KanbanBoard() {
   useEffect(() => {
     fetchTasks()
   }, [])
+
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchTasks()
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery, filterPriority, filterTags])
 
   const handleDragStart = (event: DragStartEvent) => {
     const task = tasks.find((t) => t.id === event.active.id)
@@ -201,16 +238,24 @@ export default function KanbanBoard() {
   const handleAddTask = async () => {
     if (!newTask.title.trim()) return
 
+    const tagsArray = newTask.tags
+      .split(',')
+      .map(t => t.trim())
+      .filter(Boolean)
+
     try {
       await fetch('/api/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...newTask,
+          title: newTask.title,
+          description: newTask.description,
+          priority: newTask.priority,
           status: newTaskStatus,
+          tags: JSON.stringify(tagsArray),
         }),
       })
-      setNewTask({ title: '', description: '', priority: 'medium' })
+      setNewTask({ title: '', description: '', priority: 'medium', tags: '' })
       setShowAddModal(false)
       fetchTasks()
     } catch (e) {
@@ -221,6 +266,10 @@ export default function KanbanBoard() {
   const handleEditTask = async () => {
     if (!editingTask) return
 
+    const tagsArray = Array.isArray(editingTask.tags) 
+      ? editingTask.tags 
+      : (editingTask.tags ? JSON.parse(editingTask.tags) : [])
+
     try {
       await fetch(`/api/tasks/${editingTask.id}`, {
         method: 'PATCH',
@@ -229,6 +278,7 @@ export default function KanbanBoard() {
           title: editingTask.title,
           description: editingTask.description,
           priority: editingTask.priority,
+          tags: JSON.stringify(tagsArray),
         }),
       })
       setEditingTask(null)
@@ -252,40 +302,93 @@ export default function KanbanBoard() {
     }
   }
 
+  const clearFilters = () => {
+    setSearchQuery('')
+    setFilterPriority('')
+    setFilterTags('')
+  }
+
   const getTasksByStatus = (status: string) => tasks.filter((t) => t.status === status)
 
+  const hasFilters = searchQuery || filterPriority || filterTags
+
   return (
-    <div className="flex gap-4 overflow-x-auto pb-4">
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        {LANES.map((lane) => (
-          <Lane
-            key={lane.id}
-            lane={lane}
-            tasks={getTasksByStatus(lane.id)}
-            onAddTask={(status) => {
-              setNewTaskStatus(status)
-              setShowAddModal(true)
-            }}
-            onEditTask={(task) => setEditingTask(task)}
+    <div>
+      {/* Search and Filter Bar */}
+      <div className="bg-gray-800 rounded-lg p-3 mb-4">
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="relative flex-1">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+            <input
+              type="text"
+              placeholder="Search tasks..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-gray-900 border border-gray-700 rounded pl-9 pr-3 py-2 text-white text-sm"
+            />
+          </div>
+          <select
+            value={filterPriority}
+            onChange={(e) => setFilterPriority(e.target.value)}
+            className="bg-gray-900 border border-gray-700 rounded px-3 py-2 text-white text-sm"
+          >
+            <option value="">All Priorities</option>
+            {PRIORITIES.map(p => (
+              <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
+            ))}
+          </select>
+          <input
+            type="text"
+            placeholder="Filter by tag..."
+            value={filterTags}
+            onChange={(e) => setFilterTags(e.target.value)}
+            className="bg-gray-900 border border-gray-700 rounded px-3 py-2 text-white text-sm w-full sm:w-32"
           />
-        ))}
-        <DragOverlay>
-          {activeTask && (
-            <div className="bg-gray-800 rounded p-3 shadow-lg">
-              <p className="text-white text-sm">{activeTask.title}</p>
-            </div>
+          {hasFilters && (
+            <button
+              onClick={clearFilters}
+              className="flex items-center justify-center gap-1 bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded text-sm"
+            >
+              <X size={14} />
+              Clear
+            </button>
           )}
-        </DragOverlay>
-      </DndContext>
+        </div>
+      </div>
+
+      {/* Kanban Board */}
+      <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 -mx-2 px-2 sm:mx-0 sm:px-0">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          {LANES.map((lane) => (
+            <Lane
+              key={lane.id}
+              lane={lane}
+              tasks={getTasksByStatus(lane.id)}
+              onAddTask={(status) => {
+                setNewTaskStatus(status)
+                setShowAddModal(true)
+              }}
+              onEditTask={(task) => setEditingTask(task)}
+            />
+          ))}
+          <DragOverlay>
+            {activeTask && (
+              <div className="bg-gray-800 rounded p-3 shadow-lg w-[250px] sm:w-[280px]">
+                <p className="text-white text-sm">{activeTask.title}</p>
+              </div>
+            )}
+          </DragOverlay>
+        </DndContext>
+      </div>
 
       {/* Add Task Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-900 p-6 rounded-lg w-full max-w-md">
             <h2 className="text-xl font-bold text-white mb-4">Add Task</h2>
             <input
@@ -305,12 +408,22 @@ export default function KanbanBoard() {
             <select
               value={newTask.priority}
               onChange={(e) => setNewTask({ ...newTask, priority: e.target.value })}
-              className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white mb-4"
+              className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white mb-3"
             >
               <option value="low">Low</option>
               <option value="medium">Medium</option>
               <option value="high">High</option>
             </select>
+            <div className="relative mb-4">
+              <Tag size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+              <input
+                type="text"
+                placeholder="Tags (comma-separated)"
+                value={newTask.tags}
+                onChange={(e) => setNewTask({ ...newTask, tags: e.target.value })}
+                className="w-full bg-gray-800 border border-gray-700 rounded pl-9 pr-3 py-2 text-white"
+              />
+            </div>
             <div className="flex gap-2">
               <button
                 onClick={handleAddTask}
@@ -331,7 +444,7 @@ export default function KanbanBoard() {
 
       {/* Edit Task Modal */}
       {editingTask && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-900 p-6 rounded-lg w-full max-w-md">
             <h2 className="text-xl font-bold text-white mb-4">Edit Task</h2>
             <input
@@ -348,12 +461,28 @@ export default function KanbanBoard() {
             <select
               value={editingTask.priority}
               onChange={(e) => setEditingTask({ ...editingTask, priority: e.target.value })}
-              className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white mb-4"
+              className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white mb-3"
             >
               <option value="low">Low</option>
               <option value="medium">Medium</option>
               <option value="high">High</option>
             </select>
+            <div className="relative mb-4">
+              <Tag size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+              <input
+                type="text"
+                placeholder="Tags (comma-separated)"
+                value={Array.isArray(editingTask.tags) ? editingTask.tags.join(', ') : (typeof editingTask.tags === 'string' ? JSON.parse(editingTask.tags).join(', ') : '')}
+                onChange={(e) => {
+                  const tagArray = e.target.value.split(',').map(t => t.trim()).filter(Boolean)
+                  setEditingTask({ 
+                    ...editingTask, 
+                    tags: tagArray as unknown as string
+                  })
+                }}
+                className="w-full bg-gray-800 border border-gray-700 rounded pl-9 pr-3 py-2 text-white"
+              />
+            </div>
             <div className="flex gap-2">
               <button
                 onClick={handleEditTask}
