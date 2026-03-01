@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { RefreshCw, Loader2 } from 'lucide-react'
+import { RefreshCw, Loader2, Wifi, WifiOff } from 'lucide-react'
+import { useSSE } from '@/lib/useSSE'
 
 interface Activity {
   id: string
@@ -14,6 +15,7 @@ const typeLabels: Record<string, string> = {
   task_created: 'Task created',
   task_moved: 'Task moved',
   task_completed: 'Task completed',
+  task_deleted: 'Task deleted',
   agent_heartbeat: 'Agent heartbeat',
   agent_error: 'Agent error',
   login: 'User logged in',
@@ -40,9 +42,15 @@ export default function ActivityFeed() {
 
   useEffect(() => {
     fetchActivities()
-    const interval = setInterval(fetchActivities, 15000)
-    return () => clearInterval(interval)
   }, [])
+
+  // Real-time updates via SSE
+  const { connected } = useSSE({
+    onActivity: (data) => {
+      const newActivity = data as Activity
+      setActivities(prev => [newActivity, ...prev].slice(0, 20))
+    },
+  })
 
   const formatTime = (dateStr: string) => {
     const date = new Date(dateStr)
@@ -83,7 +91,14 @@ export default function ActivityFeed() {
   return (
     <div className="bg-gray-900 rounded-lg border border-gray-800">
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
-        <h2 className="font-semibold text-white">Activity</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="font-semibold text-white">Activity</h2>
+          {connected ? (
+            <span title="Real-time connected"><Wifi size={14} className="text-green-500" /></span>
+          ) : (
+            <span title="Connecting..."><WifiOff size={14} className="text-gray-500" /></span>
+          )}
+        </div>
         <button
           onClick={fetchActivities}
           disabled={loading}

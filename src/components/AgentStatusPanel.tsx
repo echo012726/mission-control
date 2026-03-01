@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { RefreshCw, Circle, Play, Square, Loader2 } from 'lucide-react'
+import { RefreshCw, Circle, Play, Square, Loader2, Wifi, WifiOff } from 'lucide-react'
 import { Agent } from '@/types'
 import { useToast } from '@/components/Toast'
+import { useSSE } from '@/lib/useSSE'
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
@@ -45,9 +46,14 @@ export default function AgentStatusPanel() {
 
   useEffect(() => {
     fetchAgents()
-    const interval = setInterval(fetchAgents, 10000)
-    return () => clearInterval(interval)
   }, [])
+
+  // Real-time updates via SSE
+  const { connected } = useSSE({
+    onAgentUpdate: () => {
+      fetchAgents()
+    },
+  })
 
   const handleProvision = async (agentId: string, action: 'start' | 'stop') => {
     setProvisioning(agentId)
@@ -85,7 +91,14 @@ export default function AgentStatusPanel() {
   return (
     <div className="bg-gray-900 rounded-lg border border-gray-800">
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
-        <h2 className="font-semibold text-white">Agent Status</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="font-semibold text-white">Agent Status</h2>
+          {connected ? (
+            <span title="Real-time connected"><Wifi size={14} className="text-green-500" /></span>
+          ) : (
+            <span title="Connecting..."><WifiOff size={14} className="text-gray-500" /></span>
+          )}
+        </div>
         <button
           onClick={fetchAgents}
           disabled={loading}

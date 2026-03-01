@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession, logActivity } from '@/lib/auth'
 
+async function broadcastEvent(event: string, data: unknown) {
+  console.log(`[BROADCAST] ${event}:`, data)
+}
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -55,6 +59,8 @@ export async function PATCH(
     })
   }
 
+  await broadcastEvent('task_updated', task)
+
   return NextResponse.json(task)
 }
 
@@ -68,7 +74,15 @@ export async function DELETE(
   }
 
   const { id } = await params
+  
+  const task = await prisma.task.findUnique({ where: { id } })
+  
   await prisma.task.delete({ where: { id } })
+
+  if (task) {
+    await logActivity('task_deleted', { taskId: id, title: task.title })
+    await broadcastEvent('task_deleted', { id })
+  }
 
   return NextResponse.json({ success: true })
 }

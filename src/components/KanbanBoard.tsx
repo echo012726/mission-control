@@ -22,6 +22,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { Plus, GripVertical, Search, X, Tag, Download, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Task } from '@/types'
 import { useToast } from '@/components/Toast'
+import { useSSE } from '@/lib/useSSE'
 
 const LANES = [
   { id: 'inbox', label: 'Inbox', color: 'border-gray-500' },
@@ -204,6 +205,23 @@ export default function KanbanBoard() {
   useEffect(() => {
     fetchTasks()
   }, [fetchTasks])
+
+  // Real-time updates via SSE
+  useSSE({
+    onTaskCreated: (data) => {
+      const newTask = data as Task
+      setTasks(prev => [newTask, ...prev])
+      showToast(`New task: ${newTask.title}`, 'info')
+    },
+    onTaskUpdated: (data) => {
+      const updatedTask = data as Task
+      setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t))
+    },
+    onTaskDeleted: (data) => {
+      const { id } = data as { id: string }
+      setTasks(prev => prev.filter(t => t.id !== id))
+    },
+  })
 
   // Keyboard shortcuts
   useEffect(() => {

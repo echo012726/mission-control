@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession, logActivity } from '@/lib/auth'
 
+// Simple broadcast helper - in production would use Redis or similar
+// For now, we'll just log and the client will poll for changes
+async function broadcastEvent(event: string, data: unknown) {
+  // In a full implementation, this would push to Redis or use Server-Sent Events
+  // For now, events are logged and clients can subscribe to SSE endpoint
+  console.log(`[BROADCAST] ${event}:`, data)
+}
+
 export async function GET() {
   const authenticated = await getSession()
   if (!authenticated) {
@@ -40,6 +48,7 @@ export async function POST(req: NextRequest) {
   })
 
   await logActivity('task_created', { taskId: task.id, title: task.title })
+  await broadcastEvent('task_created', task)
 
   return NextResponse.json(task)
 }
