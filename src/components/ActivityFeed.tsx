@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { RefreshCw, Loader2 } from 'lucide-react'
 
 interface Activity {
   id: string
@@ -20,7 +21,7 @@ const typeLabels: Record<string, string> = {
 
 export default function ActivityFeed() {
   const [activities, setActivities] = useState<Activity[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   const fetchActivities = async () => {
     setLoading(true)
@@ -86,13 +87,17 @@ export default function ActivityFeed() {
         <button
           onClick={fetchActivities}
           disabled={loading}
-          className="text-gray-400 hover:text-white disabled:opacity-50 text-sm"
+          className="text-gray-400 hover:text-white disabled:opacity-50 text-sm transition-colors"
         >
-          {loading ? 'Loading...' : '↻'}
+          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
         </button>
       </div>
       <div className="p-4 max-h-[300px] overflow-y-auto">
-        {activities.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="animate-spin text-blue-500" size={24} />
+          </div>
+        ) : activities.length === 0 ? (
           <p className="text-gray-500 text-sm">No activity yet</p>
         ) : (
           <div className="space-y-3">

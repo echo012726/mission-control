@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { RefreshCw, Circle, Play, Square, Loader2 } from 'lucide-react'
 import { Agent } from '@/types'
+import { useToast } from '@/components/Toast'
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
@@ -22,8 +23,9 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function AgentStatusPanel() {
   const [agents, setAgents] = useState<Agent[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [provisioning, setProvisioning] = useState<string | null>(null)
+  const { showToast } = useToast()
 
   const fetchAgents = async () => {
     setLoading(true)
@@ -35,6 +37,7 @@ export default function AgentStatusPanel() {
       }
     } catch (e) {
       console.error('Failed to fetch agents', e)
+      showToast('Failed to load agents', 'error')
     } finally {
       setLoading(false)
     }
@@ -55,10 +58,14 @@ export default function AgentStatusPanel() {
         body: JSON.stringify({ agentId, action }),
       })
       if (res.ok) {
+        showToast(`Agent ${action}ed`, 'success')
         fetchAgents()
+      } else {
+        showToast(`Failed to ${action} agent`, 'error')
       }
     } catch (e) {
       console.error(`Failed to ${action} agent`, e)
+      showToast(`Failed to ${action} agent`, 'error')
     } finally {
       setProvisioning(null)
     }
@@ -82,13 +89,17 @@ export default function AgentStatusPanel() {
         <button
           onClick={fetchAgents}
           disabled={loading}
-          className="text-gray-400 hover:text-white disabled:opacity-50"
+          className="text-gray-400 hover:text-white disabled:opacity-50 transition-colors"
         >
           <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
         </button>
       </div>
       <div className="p-4">
-        {agents.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="animate-spin text-blue-500" size={24} />
+          </div>
+        ) : agents.length === 0 ? (
           <p className="text-gray-500 text-sm">No agents found</p>
         ) : (
           <div className="space-y-3">
@@ -113,7 +124,7 @@ export default function AgentStatusPanel() {
                       <button
                         onClick={() => handleProvision(agent.id, 'start')}
                         disabled={provisioning === agent.id}
-                        className="p-1 text-green-400 hover:text-green-300 disabled:opacity-50"
+                        className="p-1 text-green-400 hover:text-green-300 disabled:opacity-50 transition-colors"
                         title="Start agent"
                       >
                         {provisioning === agent.id ? (
@@ -126,7 +137,7 @@ export default function AgentStatusPanel() {
                       <button
                         onClick={() => handleProvision(agent.id, 'stop')}
                         disabled={provisioning === agent.id}
-                        className="p-1 text-red-400 hover:text-red-300 disabled:opacity-50"
+                        className="p-1 text-red-400 hover:text-red-300 disabled:opacity-50 transition-colors"
                         title="Stop agent"
                       >
                         {provisioning === agent.id ? (
