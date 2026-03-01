@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json()
-  const { title, description, status, priority, tags, agentId } = body
+  const { title, description, status, priority, tags, agentId, dueDate } = body
 
   if (!title) {
     return NextResponse.json({ error: 'Title required' }, { status: 400 })
@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
       priority: priority || 'medium',
       tags: tags ? JSON.stringify(tags) : '[]',
       agentId,
+      dueDate: dueDate ? new Date(dueDate) : null,
     },
   })
 

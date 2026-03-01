@@ -179,7 +179,8 @@ export default function KanbanBoard() {
     title: '', 
     description: '', 
     priority: 'medium',
-    tags: ''
+    tags: '',
+    dueDate: ''
   })
   
   // Comments and attachments state
@@ -400,11 +401,12 @@ export default function KanbanBoard() {
           priority: newTask.priority,
           status: newTaskStatus,
           tags: JSON.stringify(tagsArray),
+          dueDate: newTask.dueDate || null,
         }),
       })
       if (res.ok) {
         showToast('Task created successfully', 'success')
-        setNewTask({ title: '', description: '', priority: 'medium', tags: '' })
+        setNewTask({ title: '', description: '', priority: 'medium', tags: '', dueDate: '' })
         setShowAddModal(false)
         fetchTasks()
       } else {
@@ -834,6 +836,16 @@ export default function KanbanBoard() {
                 value={newTask.tags}
                 onChange={(e) => setNewTask({ ...newTask, tags: e.target.value })}
                 className="w-full bg-gray-800 border border-gray-700 rounded pl-9 pr-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="flex items-center gap-2 mb-4">
+              <Calendar size={16} className="text-gray-500" />
+              <label className="text-gray-400 text-sm">Due Date:</label>
+              <input
+                type="date"
+                value={newTask.dueDate}
+                onChange={(e) => setNewTask({ ...newTask, dueDate: e.target.value })}
+                className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1"
               />
             </div>
             <div className="flex gap-2">
