@@ -4,34 +4,34 @@
 
 ### Week 1: Foundation
 
-- [ ] Initialize Next.js 14 project with TypeScript
-- [ ] Set up Prisma with PostgreSQL connection
-- [ ] Create database schema (tasks, activity_log, auth_tokens)
-- [ ] Configure environment variables
+- [x] Initialize Next.js 14 project with TypeScript
+- [x] Set up Prisma with PostgreSQL connection
+- [x] Create database schema (tasks, activity_log, auth_tokens)
+- [x] Configure environment variables
 
 ### Week 2: Authentication
 
-- [ ] Implement token-based auth middleware
-- [ ] Create login page with token input
-- [ ] Set up NextAuth.js with bearer token provider
-- [ ] Add protected route middleware
+- [x] Implement token-based auth middleware
+- [x] Create login page with token input
+- [ ] Set up NextAuth.js with bearer token provider (using custom auth instead)
+- [x] Add protected route middleware
 - [ ] Test auth flow end-to-end
 
 ### Week 3: Kanban Board
 
-- [ ] Build Kanban board layout with 5 lanes
-- [ ] Implement task list API endpoints (GET, POST, PATCH, DELETE)
-- [ ] Create task card component
-- [ ] Add drag-and-drop between lanes using @dnd-kit
-- [ ] Implement task create/edit modal
+- [x] Build Kanban board layout with 5 lanes
+- [x] Implement task list API endpoints (GET, POST, PATCH, DELETE)
+- [x] Create task card component
+- [x] Add drag-and-drop between lanes using @dnd-kit
+- [x] Implement task create/edit modal
 
 ### Week 4: Agent Status Panel
 
-- [ ] Read agent state from OpenClaw (API or file)
-- [ ] Build agent list component with status indicators
-- [ ] Add polling for agent updates (10s interval)
-- [ ] Display last heartbeat and current task
-- [ ] Add error state display
+- [x] Read agent state from OpenClaw (API or file)
+- [x] Build agent list component with status indicators
+- [x] Add polling for agent updates (10s interval)
+- [x] Display last heartbeat and current task
+- [x] Add error state display
 
 **Phase 1 Deliverable**: Functional MVP — login, view/manage tasks on Kanban, see agent statuses
 
