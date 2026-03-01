@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession, logActivity } from '@/lib/auth'
-
-async function broadcastEvent(event: string, data: unknown) {
-  console.log(`[BROADCAST] ${event}:`, data)
-}
+import { broadcastEvent } from '@/lib/sse-server'
 
 export async function GET(
   req: NextRequest,
@@ -59,7 +56,8 @@ export async function PATCH(
     })
   }
 
-  await broadcastEvent('task_updated', task)
+  // Broadcast to all connected SSE clients
+  broadcastEvent('task_updated', task)
 
   return NextResponse.json(task)
 }
@@ -81,7 +79,8 @@ export async function DELETE(
 
   if (task) {
     await logActivity('task_deleted', { taskId: id, title: task.title })
-    await broadcastEvent('task_deleted', { id })
+    // Broadcast to all connected SSE clients
+    broadcastEvent('task_deleted', { id })
   }
 
   return NextResponse.json({ success: true })
