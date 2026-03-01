@@ -2,14 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { RefreshCw, Circle } from 'lucide-react'
-
-interface Agent {
-  id: string
-  status: string
-  lastHeartbeat?: number
-  currentTask?: string
-  error?: string
-}
+import { Agent } from '@/types'
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {

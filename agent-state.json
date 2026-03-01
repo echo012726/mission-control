@@ -1,0 +1,21 @@
+{
+  "agents": [
+    {
+      "id": "agent-1",
+      "status": "idle",
+      "lastHeartbeat": 1709320000000
+    },
+    {
+      "id": "agent-2",
+      "status": "running",
+      "currentTask": "Scraping weather data",
+      "lastHeartbeat": 1709320100000
+    },
+    {
+      "id": "agent-3",
+      "status": "error",
+      "error": "Connection timeout",
+      "lastHeartbeat": 1709319000000
+    }
+  ]
+}

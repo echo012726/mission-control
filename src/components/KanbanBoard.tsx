@@ -17,7 +17,8 @@ import {
   useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Plus, MoreHorizontal, GripVertical } from 'lucide-react'
+import { Plus, GripVertical } from 'lucide-react'
+import { Task } from '@/types'
 
 const LANES = [
   { id: 'inbox', label: 'Inbox', color: 'border-gray-500' },
@@ -26,16 +27,6 @@ const LANES = [
   { id: 'blocked', label: 'Blocked', color: 'border-red-500' },
   { id: 'done', label: 'Done', color: 'border-green-500' },
 ]
-
-interface Task {
-  id: string
-  title: string
-  description?: string
-  status: string
-  priority: string
-  tags: string
-  createdAt: string
-}
 
 function TaskCard({ task, onEdit }: { task: Task; onEdit: (task: Task) => void }) {
   const {
