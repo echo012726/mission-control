@@ -1,5 +1,6 @@
 'use client'
 
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect } from 'react'
 import {
   DndContext,
@@ -87,13 +88,11 @@ function TaskCard({ task, onEdit }: { task: Task; onEdit: (task: Task) => void }
 function Lane({
   lane,
   tasks,
-  onTaskMove,
   onAddTask,
   onEditTask,
 }: {
   lane: typeof LANES[0]
   tasks: Task[]
-  onTaskMove: (taskId: string, newStatus: string) => void
   onAddTask: (status: string) => void
   onEditTask: (task: Task) => void
 }) {
@@ -141,10 +140,6 @@ export default function KanbanBoard() {
     })
   )
 
-  useEffect(() => {
-    fetchTasks()
-  }, [])
-
   const fetchTasks = async () => {
     try {
       const res = await fetch('/api/tasks')
@@ -156,6 +151,10 @@ export default function KanbanBoard() {
       console.error('Failed to fetch tasks', e)
     }
   }
+
+  useEffect(() => {
+    fetchTasks()
+  }, [])
 
   const handleDragStart = (event: DragStartEvent) => {
     const task = tasks.find((t) => t.id === event.active.id)
@@ -268,7 +267,6 @@ export default function KanbanBoard() {
             key={lane.id}
             lane={lane}
             tasks={getTasksByStatus(lane.id)}
-            onTaskMove={updateTaskStatus}
             onAddTask={(status) => {
               setNewTaskStatus(status)
               setShowAddModal(true)

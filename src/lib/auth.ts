@@ -56,7 +56,7 @@ export async function login(token: string): Promise<boolean> {
   return false
 }
 
-export async function logActivity(type: string, payload: any) {
+export async function logActivity(type: string, payload: Record<string, unknown>) {
   try {
     await prisma.activityLog.create({
       data: {

@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import fs from 'fs'
-import path from 'path'
 
 interface AgentState {
   id: string
@@ -36,13 +35,16 @@ async function getOpenClawAgents(): Promise<AgentState[]> {
         
         if (data.sessions) {
           // Convert sessions object to array
-          return Object.entries(data.sessions).map(([id, session]: [string, any]) => ({
-            id,
-            status: session.status || 'unknown',
-            lastHeartbeat: session.lastHeartbeat,
-            currentTask: session.currentTask,
-            error: session.error,
-          }))
+          return Object.entries(data.sessions).map(([id, session]: [string, unknown]) => {
+            const s = session as Record<string, unknown>
+            return {
+              id,
+              status: (s.status as string) || 'unknown',
+              lastHeartbeat: s.lastHeartbeat as number | undefined,
+              currentTask: s.currentTask as string | undefined,
+              error: s.error as string | undefined,
+            }
+          })
         }
       }
     } catch (e) {
