@@ -13,7 +13,23 @@ export async function GET(
   }
 
   const { id } = await params
-  const task = await prisma.task.findUnique({ where: { id } })
+  const task = await prisma.task.findUnique({ 
+    where: { id },
+    include: {
+      comments: { orderBy: { createdAt: 'asc' } },
+      attachments: {
+        select: {
+          id: true,
+          taskId: true,
+          filename: true,
+          contentType: true,
+          size: true,
+          uploadedBy: true,
+          createdAt: true,
+        },
+      },
+    },
+  })
 
   if (!task) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -45,6 +61,9 @@ export async function PATCH(
       ...(body.priority && { priority: body.priority }),
       ...(body.tags && { tags: JSON.stringify(body.tags) }),
       ...(body.agentId !== undefined && { agentId: body.agentId }),
+      ...(body.dueDate !== undefined && { 
+        dueDate: body.dueDate ? new Date(body.dueDate) : null 
+      }),
     },
   })
 

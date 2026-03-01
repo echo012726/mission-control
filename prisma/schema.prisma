@@ -8,16 +8,54 @@ datasource db {
 }
 
 model Task {
-  id           String   @id @default(uuid())
+  id           String    @id @default(uuid())
   title        String
   description  String?
-  status       String   @default("inbox")
-  priority     String   @default("medium")
-  tags         String   @default("[]")
+  status       String    @default("inbox")
+  priority     String    @default("medium")
+  tags         String    @default("[]")
   agentId      String?
-  dependsOn    String   @default("[]") // JSON array of task IDs this task depends on
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  dependsOn    String    @default("[]") // JSON array of task IDs this task depends on
+  dueDate      DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  comments     TaskComment[]
+  attachments  TaskAttachment[]
+}
+
+model TaskComment {
+  id        String   @id @default(uuid())
+  taskId    String
+  content   String
+  author    String
+  createdAt DateTime @default(now())
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model TaskAttachment {
+  id          String   @id @default(uuid())
+  taskId      String
+  filename    String
+  contentType String
+  data        String   // Base64 encoded file data
+  size        Int
+  uploadedBy  String
+  createdAt   DateTime @default(now())
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model CronJob {
+  id          String   @id @default(uuid())
+  name        String
+  schedule    String   // Cron expression
+  command     String
+  enabled     Boolean  @default(true)
+  lastRun     DateTime?
+  nextRun     DateTime?
+  status      String   @default("idle") // idle, running, success, failed
+  lastError   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Webhook {

@@ -3,23 +3,27 @@
 import { useState } from 'react'
 import KanbanBoard from '@/components/KanbanBoard'
 import AgentStatusPanel from '@/components/AgentStatusPanel'
+import AgentDeepDivePanel from '@/components/AgentDeepDivePanel'
 import ActivityFeed from '@/components/ActivityFeed'
 import MetricsDashboard from '@/components/MetricsDashboard'
 import WebhooksPanel from '@/components/WebhooksPanel'
 import ApprovalsPanel from '@/components/ApprovalsPanel'
-import { LayoutDashboard, ListTodo, Activity, Webhook, Shield, Bot } from 'lucide-react'
+import CronJobMonitor from '@/components/CronJobMonitor'
+import { LayoutDashboard, ListTodo, Activity, Webhook, Shield, Bot, Clock } from 'lucide-react'
 
-type Tab = 'tasks' | 'metrics' | 'webhooks' | 'approvals'
+type Tab = 'tasks' | 'metrics' | 'webhooks' | 'approvals' | 'cron'
 
 const tabs: { id: Tab; label: string; icon: typeof ListTodo }[] = [
   { id: 'tasks', label: 'Tasks', icon: ListTodo },
   { id: 'metrics', label: 'Metrics', icon: LayoutDashboard },
+  { id: 'cron', label: 'Cron', icon: Clock },
   { id: 'webhooks', label: 'Webhooks', icon: Webhook },
   { id: 'approvals', label: 'Approvals', icon: Shield },
 ]
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>('tasks')
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null)
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -60,7 +64,7 @@ export default function Home() {
               <KanbanBoard />
             </div>
             <div className="space-y-4 lg:space-y-6">
-              <AgentStatusPanel />
+              <AgentStatusPanel onAgentClick={setSelectedAgentId} />
               <ActivityFeed />
             </div>
           </div>
@@ -71,9 +75,16 @@ export default function Home() {
           <div className="space-y-6">
             <MetricsDashboard />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <AgentStatusPanel />
+              <AgentStatusPanel onAgentClick={setSelectedAgentId} />
               <ActivityFeed />
             </div>
+          </div>
+        )}
+
+        {/* Cron Tab */}
+        {activeTab === 'cron' && (
+          <div className="space-y-6">
+            <CronJobMonitor />
           </div>
         )}
 
@@ -91,6 +102,14 @@ export default function Home() {
           </div>
         )}
       </main>
+
+      {/* Agent Deep-Dive Panel */}
+      {selectedAgentId && (
+        <AgentDeepDivePanel
+          agentId={selectedAgentId}
+          onClose={() => setSelectedAgentId(null)}
+        />
+      )}
     </div>
   )
 }

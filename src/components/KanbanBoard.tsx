@@ -19,8 +19,8 @@ import {
   useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Plus, GripVertical, Search, X, Tag, Download, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
-import { Task } from '@/types'
+import { Plus, GripVertical, Search, X, Tag, Download, Loader2, ChevronLeft, ChevronRight, Calendar, MessageSquare, Paperclip, Clock, Trash2 } from 'lucide-react'
+import { Task, TaskComment, TaskAttachment } from '@/types'
 import { useToast } from '@/components/Toast'
 import { useSSE } from '@/lib/useSSE'
 
@@ -56,6 +56,22 @@ function TaskCard({ task, onEdit, isSelected }: { task: Task; onEdit: (task: Tas
   }
 
   const tags = task.tags ? (typeof task.tags === 'string' ? JSON.parse(task.tags) : task.tags) : []
+
+  // Check if due date is overdue
+  const isOverdue = task.dueDate && new Date(task.dueDate) < new Date()
+
+  // Format due date
+  const formatDueDate = (dateStr?: string | null) => {
+    if (!dateStr) return null
+    const date = new Date(dateStr)
+    const today = new Date()
+    const tomorrow = new Date(today)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    
+    if (date.toDateString() === today.toDateString()) return 'Today'
+    if (date.toDateString() === tomorrow.toDateString()) return 'Tomorrow'
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  }
 
   return (
     <div
@@ -94,6 +110,12 @@ function TaskCard({ task, onEdit, isSelected }: { task: Task; onEdit: (task: Tas
               </span>
             ))}
           </div>
+          {task.dueDate && (
+            <div className={`flex items-center gap-1 mt-2 text-xs ${isOverdue ? 'text-red-400' : 'text-gray-400'}`}>
+              <Clock size={12} />
+              <span>{formatDueDate(task.dueDate)}</span>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -159,6 +181,15 @@ export default function KanbanBoard() {
     priority: 'medium',
     tags: ''
   })
+  
+  // Comments and attachments state
+  const [comments, setComments] = useState<TaskComment[]>([])
+  const [attachments, setAttachments] = useState<TaskAttachment[]>([])
+  const [newComment, setNewComment] = useState('')
+  const [loadingComments, setLoadingComments] = useState(false)
+  const [loadingAttachments, setLoadingAttachments] = useState(false)
+  const [uploadingFile, setUploadingFile] = useState(false)
+  const [activeTaskTab, setActiveTaskTab] = useState<'details' | 'comments' | 'attachments'>('details')
   
   // Search and filter state
   const [searchQuery, setSearchQuery] = useState('')
@@ -401,6 +432,7 @@ export default function KanbanBoard() {
           description: editingTask.description,
           priority: editingTask.priority,
           tags: JSON.stringify(tagsArray),
+          dueDate: editingTask.dueDate,
         }),
       })
       if (res.ok) {
@@ -433,6 +465,171 @@ export default function KanbanBoard() {
     } catch (e) {
       console.error('Failed to delete task', e)
       showToast('Failed to delete task', 'error')
+    }
+  }
+
+  // Fetch comments and attachments when editing a task
+  const fetchTaskDetails = async (taskId: string) => {
+    setLoadingComments(true)
+    setLoadingAttachments(true)
+    try {
+      // Fetch comments
+      const commentsRes = await fetch(`/api/tasks/${taskId}/comments`)
+      if (commentsRes.ok) {
+        const data = await commentsRes.json()
+        setComments(data)
+      }
+      
+      // Fetch attachments
+      const attachmentsRes = await fetch(`/api/tasks/${taskId}/attachments`)
+      if (attachmentsRes.ok) {
+        const data = await attachmentsRes.json()
+        setAttachments(data)
+      }
+    } catch (e) {
+      console.error('Failed to fetch task details', e)
+    } finally {
+      setLoadingComments(false)
+      setLoadingAttachments(false)
+    }
+  }
+
+  // Open task modal - fetch comments and attachments
+  const openTaskModal = async (task: Task) => {
+    setEditingTask(task)
+    setActiveTaskTab('details')
+    await fetchTaskDetails(task.id)
+  }
+
+  // Handle adding a comment
+  const handleAddComment = async () => {
+    if (!editingTask || !newComment.trim()) return
+    
+    try {
+      const res = await fetch(`/api/tasks/${editingTask.id}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: newComment.trim() }),
+      })
+      if (res.ok) {
+        const comment = await res.json()
+        setComments(prev => [...prev, comment])
+        setNewComment('')
+        showToast('Comment added', 'success')
+      } else {
+        showToast('Failed to add comment', 'error')
+      }
+    } catch (e) {
+      console.error('Failed to add comment', e)
+      showToast('Failed to add comment', 'error')
+    }
+  }
+
+  // Handle deleting a comment
+  const handleDeleteComment = async (commentId: string) => {
+    if (!editingTask) return
+    
+    try {
+      const res = await fetch(`/api/tasks/${editingTask.id}/comments/${commentId}`, {
+        method: 'DELETE',
+      })
+      if (res.ok) {
+        setComments(prev => prev.filter(c => c.id !== commentId))
+        showToast('Comment deleted', 'success')
+      }
+    } catch (e) {
+      console.error('Failed to delete comment', e)
+    }
+  }
+
+  // Handle file upload
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !editingTask) return
+    
+    setUploadingFile(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      
+      const res = await fetch(`/api/tasks/${editingTask.id}/attachments`, {
+        method: 'POST',
+        body: formData,
+      })
+      if (res.ok) {
+        const attachment = await res.json()
+        setAttachments(prev => [attachment, ...prev])
+        showToast('File uploaded', 'success')
+      } else {
+        const err = await res.json()
+        showToast(err.error || 'Failed to upload file', 'error')
+      }
+    } catch (e) {
+      console.error('Failed to upload file', e)
+      showToast('Failed to upload file', 'error')
+    } finally {
+      setUploadingFile(false)
+      // Reset file input
+      e.target.value = ''
+    }
+  }
+
+  // Handle file download
+  const handleFileDownload = async (attachment: TaskAttachment) => {
+    if (!editingTask) return
+    
+    try {
+      const res = await fetch(`/api/tasks/${editingTask.id}/attachments/${attachment.id}`)
+      if (res.ok) {
+        const blob = await res.blob()
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = attachment.filename
+        a.click()
+        URL.revokeObjectURL(url)
+      }
+    } catch (e) {
+      console.error('Failed to download file', e)
+      showToast('Failed to download file', 'error')
+    }
+  }
+
+  // Handle file delete
+  const handleFileDelete = async (attachmentId: string) => {
+    if (!editingTask) return
+    
+    try {
+      const res = await fetch(`/api/tasks/${editingTask.id}/attachments/${attachmentId}`, {
+        method: 'DELETE',
+      })
+      if (res.ok) {
+        setAttachments(prev => prev.filter(a => a.id !== attachmentId))
+        showToast('File deleted', 'success')
+      }
+    } catch (e) {
+      console.error('Failed to delete file', e)
+    }
+  }
+
+  // Update task with due date
+  const handleUpdateDueDate = async (dueDate: string | null) => {
+    if (!editingTask) return
+    
+    try {
+      const res = await fetch(`/api/tasks/${editingTask.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dueDate }),
+      })
+      if (res.ok) {
+        const updatedTask = await res.json()
+        setEditingTask(updatedTask)
+        setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t))
+        showToast('Due date updated', 'success')
+      }
+    } catch (e) {
+      console.error('Failed to update due date', e)
     }
   }
 
@@ -584,7 +781,7 @@ export default function KanbanBoard() {
                     setNewTaskStatus(status)
                     setShowAddModal(true)
                   }}
-                  onEditTask={(task) => setEditingTask(task)}
+                  onEditTask={(task) => openTaskModal(task)}
                   isActive={index === selectedLane}
                   onDragOver={() => {}}
                 />
@@ -660,45 +857,236 @@ export default function KanbanBoard() {
       {/* Edit Task Modal */}
       {editingTask && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 p-6 rounded-lg w-full max-w-md animate-fade-in">
+          <div className="bg-gray-900 p-6 rounded-lg w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col animate-fade-in">
             <h2 className="text-xl font-bold text-white mb-4">Edit Task</h2>
-            <input
-              type="text"
-              value={editingTask.title}
-              onChange={(e) => setEditingTask({ ...editingTask, title: e.target.value })}
-              className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <textarea
-              value={editingTask.description || ''}
-              onChange={(e) => setEditingTask({ ...editingTask, description: e.target.value })}
-              className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white mb-3 h-24 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <select
-              value={editingTask.priority}
-              onChange={(e) => setEditingTask({ ...editingTask, priority: e.target.value })}
-              className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-            </select>
-            <div className="relative mb-4">
-              <Tag size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-              <input
-                type="text"
-                placeholder="Tags (comma-separated)"
-                value={Array.isArray(editingTask.tags) ? editingTask.tags.join(', ') : (typeof editingTask.tags === 'string' ? JSON.parse(editingTask.tags).join(', ') : '')}
-                onChange={(e) => {
-                  const tagArray = e.target.value.split(',').map(t => t.trim()).filter(Boolean)
-                  setEditingTask({ 
-                    ...editingTask, 
-                    tags: tagArray as unknown as string
-                  })
-                }}
-                className="w-full bg-gray-800 border border-gray-700 rounded pl-9 pr-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+            
+            {/* Tabs */}
+            <div className="flex border-b border-gray-700 mb-4">
+              <button
+                onClick={() => setActiveTaskTab('details')}
+                className={`px-4 py-2 text-sm transition-colors ${
+                  activeTaskTab === 'details' 
+                    ? 'text-blue-400 border-b-2 border-blue-400' 
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Details
+              </button>
+              <button
+                onClick={() => setActiveTaskTab('comments')}
+                className={`px-4 py-2 text-sm transition-colors flex items-center gap-1 ${
+                  activeTaskTab === 'comments' 
+                    ? 'text-blue-400 border-b-2 border-blue-400' 
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <MessageSquare size={14} />
+                Comments {comments.length > 0 && `(${comments.length})`}
+              </button>
+              <button
+                onClick={() => setActiveTaskTab('attachments')}
+                className={`px-4 py-2 text-sm transition-colors flex items-center gap-1 ${
+                  activeTaskTab === 'attachments' 
+                    ? 'text-blue-400 border-b-2 border-blue-400' 
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <Paperclip size={14} />
+                Files {attachments.length > 0 && `(${attachments.length})`}
+              </button>
             </div>
-            <div className="flex gap-2">
+
+            {/* Tab Content */}
+            <div className="flex-1 overflow-auto">
+              {activeTaskTab === 'details' && (
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    value={editingTask.title}
+                    onChange={(e) => setEditingTask({ ...editingTask, title: e.target.value })}
+                    className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Task title"
+                  />
+                  <textarea
+                    value={editingTask.description || ''}
+                    onChange={(e) => setEditingTask({ ...editingTask, description: e.target.value })}
+                    className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white h-24 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Description (optional)"
+                  />
+                  <select
+                    value={editingTask.priority}
+                    onChange={(e) => setEditingTask({ ...editingTask, priority: e.target.value })}
+                    className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="low">Low Priority</option>
+                    <option value="medium">Medium Priority</option>
+                    <option value="high">High Priority</option>
+                  </select>
+                  
+                  {/* Due Date */}
+                  <div className="flex items-center gap-2">
+                    <Calendar size={16} className="text-gray-500" />
+                    <label className="text-gray-400 text-sm">Due Date:</label>
+                    <input
+                      type="date"
+                      value={editingTask.dueDate ? editingTask.dueDate.split('T')[0] : ''}
+                      onChange={(e) => handleUpdateDueDate(e.target.value || null)}
+                      className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1"
+                    />
+                    {editingTask.dueDate && (
+                      <button
+                        onClick={() => handleUpdateDueDate(null)}
+                        className="text-gray-400 hover:text-white"
+                        title="Clear due date"
+                      >
+                        <X size={16} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Tags */}
+                  <div className="relative">
+                    <Tag size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                    <input
+                      type="text"
+                      placeholder="Tags (comma-separated)"
+                      value={Array.isArray(editingTask.tags) ? editingTask.tags.join(', ') : (typeof editingTask.tags === 'string' ? JSON.parse(editingTask.tags).join(', ') : '')}
+                      onChange={(e) => {
+                        const tagArray = e.target.value.split(',').map(t => t.trim()).filter(Boolean)
+                        setEditingTask({ 
+                          ...editingTask, 
+                          tags: tagArray as unknown as string
+                        })
+                      }}
+                      className="w-full bg-gray-800 border border-gray-700 rounded pl-9 pr-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {activeTaskTab === 'comments' && (
+                <div className="space-y-3">
+                  {/* Add comment */}
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
+                      placeholder="Add a comment..."
+                      className="flex-1 bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <button
+                      onClick={handleAddComment}
+                      disabled={!newComment.trim()}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded disabled:opacity-50 transition-colors"
+                    >
+                      <MessageSquare size={16} />
+                    </button>
+                  </div>
+
+                  {/* Comments list */}
+                  {loadingComments ? (
+                    <div className="flex justify-center py-4">
+                      <Loader2 className="animate-spin text-blue-500" size={24} />
+                    </div>
+                  ) : comments.length === 0 ? (
+                    <p className="text-gray-500 text-sm text-center py-4">No comments yet</p>
+                  ) : (
+                    <div className="space-y-2 max-h-[300px] overflow-auto">
+                      {comments.map((comment) => (
+                        <div key={comment.id} className="bg-gray-800 rounded p-3">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <span className="text-blue-400 text-sm font-medium">{comment.author}</span>
+                              <span className="text-gray-500 text-xs ml-2">
+                                {new Date(comment.createdAt).toLocaleString()}
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => handleDeleteComment(comment.id)}
+                              className="text-gray-500 hover:text-red-400"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                          <p className="text-white text-sm mt-1">{comment.content}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTaskTab === 'attachments' && (
+                <div className="space-y-3">
+                  {/* Upload file */}
+                  <div>
+                    <input
+                      type="file"
+                      id="file-upload"
+                      onChange={handleFileUpload}
+                      disabled={uploadingFile}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="file-upload"
+                      className={`flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded px-3 py-2 text-white text-sm cursor-pointer transition-colors ${
+                        uploadingFile ? 'opacity-50' : ''
+                      }`}
+                    >
+                      {uploadingFile ? (
+                        <Loader2 className="animate-spin" size={16} />
+                      ) : (
+                        <Paperclip size={16} />
+                      )}
+                      {uploadingFile ? 'Uploading...' : 'Attach File'}
+                    </label>
+                  </div>
+
+                  {/* Attachments list */}
+                  {loadingAttachments ? (
+                    <div className="flex justify-center py-4">
+                      <Loader2 className="animate-spin text-blue-500" size={24} />
+                    </div>
+                  ) : attachments.length === 0 ? (
+                    <p className="text-gray-500 text-sm text-center py-4">No files attached</p>
+                  ) : (
+                    <div className="space-y-2 max-h-[300px] overflow-auto">
+                      {attachments.map((attachment) => (
+                        <div key={attachment.id} className="bg-gray-800 rounded p-3 flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white text-sm truncate">{attachment.filename}</p>
+                            <p className="text-gray-500 text-xs">
+                              {(attachment.size / 1024).toFixed(1)} KB • {attachment.uploadedBy} • {new Date(attachment.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div className="flex gap-1 ml-2">
+                            <button
+                              onClick={() => handleFileDownload(attachment)}
+                              className="text-blue-400 hover:text-blue-300 p-1"
+                              title="Download"
+                            >
+                              <Download size={14} />
+                            </button>
+                            <button
+                              onClick={() => handleFileDelete(attachment.id)}
+                              className="text-red-400 hover:text-red-300 p-1"
+                              title="Delete"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2 mt-4 pt-4 border-t border-gray-700">
               <button
                 onClick={handleEditTask}
                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded transition-colors"
@@ -715,7 +1103,7 @@ export default function KanbanBoard() {
                 onClick={() => setEditingTask(null)}
                 className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 rounded transition-colors"
               >
-                Cancel
+                Close
               </button>
             </div>
           </div>

@@ -22,7 +22,11 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
-export default function AgentStatusPanel() {
+interface AgentStatusPanelProps {
+  onAgentClick?: (agentId: string) => void
+}
+
+export default function AgentStatusPanel({ onAgentClick }: AgentStatusPanelProps) {
   const [agents, setAgents] = useState<Agent[]>([])
   const [loading, setLoading] = useState(true)
   const [provisioning, setProvisioning] = useState<string | null>(null)
@@ -117,7 +121,11 @@ export default function AgentStatusPanel() {
         ) : (
           <div className="space-y-3">
             {agents.map((agent) => (
-              <div key={agent.id} className="flex items-start justify-between">
+              <div 
+                key={agent.id} 
+                className={`flex items-start justify-between ${onAgentClick ? 'cursor-pointer hover:bg-gray-800/50 -mx-2 px-2 py-1 rounded' : ''}`}
+                onClick={() => onAgentClick?.(agent.id)}
+              >
                 <div className="min-w-0 flex-1">
                   <p className="text-white text-sm font-medium truncate">{agent.id}</p>
                   <StatusBadge status={agent.status} />
