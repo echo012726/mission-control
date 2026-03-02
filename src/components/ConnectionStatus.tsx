@@ -57,27 +57,27 @@ export default function ConnectionStatus({ compact = false }: ConnectionStatusPr
 
   if (compact) {
     return (
-      <div className="flex items-center gap-2">
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         {connectionState === 'connected' && (
-          <div className="flex items-center gap-1.5 text-green-400">
-            <div className="live-dot" />
-            <span className="text-xs">Live</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#16a34a' }}>
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e' }} />
+            <span style={{ fontSize: '12px', fontWeight: 500 }}>Live</span>
           </div>
         )}
         {connectionState === 'disconnected' && (
-          <div className="flex items-center gap-1.5 text-gray-500">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#94a3b8' }}>
             <WifiOff size={14} />
           </div>
         )}
         {connectionState === 'connecting' && (
-          <div className="flex items-center gap-1.5 text-yellow-400">
-            <RefreshCw size={14} className="animate-spin" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#eab308' }}>
+            <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} />
           </div>
         )}
         {connectionState === 'error' && (
           <button
             onClick={handleManualReconnect}
-            className="flex items-center gap-1.5 text-red-400 hover:text-red-300"
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}
           >
             <AlertCircle size={14} />
           </button>
@@ -87,43 +87,57 @@ export default function ConnectionStatus({ compact = false }: ConnectionStatusPr
   }
 
   return (
-    <div className="flex items-center gap-3 px-3 py-1.5 rounded-lg bg-gray-800/50 border border-white/5">
+    <div style={{ 
+      display: 'flex', 
+      alignItems: 'center', 
+      gap: '12px', 
+      padding: '8px 16px', 
+      borderRadius: '8px',
+      background: connectionState === 'connected' ? '#f0fdf4' : '#f1f5f9',
+      border: `1px solid ${connectionState === 'connected' ? '#bbf7d0' : '#e2e8f0'}`
+    }}>
       {connectionState === 'connected' && (
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <Wifi size={16} className="text-green-400" />
-            <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-          </div>
-          <span className="text-sm text-green-400 font-medium">Connected</span>
-          <div className="flex items-center gap-1.5 ml-2">
-            <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-            <span className="text-xs text-green-400/70">Real-time</span>
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Wifi size={16} color="#16a34a" />
+          <span style={{ fontSize: '14px', fontWeight: 500, color: '#15803d' }}>Connected</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '8px' }}>
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e' }} />
+            <span style={{ fontSize: '12px', color: '#15803d' }}>Real-time</span>
+          </span>
         </div>
       )}
 
       {connectionState === 'disconnected' && (
-        <div className="flex items-center gap-2">
-          <WifiOff size={16} className="text-gray-500" />
-          <span className="text-sm text-gray-500">Disconnected</span>
-          <span className="text-xs text-gray-600">Reconnecting...</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <WifiOff size={16} color="#94a3b8" />
+          <span style={{ fontSize: '14px', color: '#64748b' }}>Disconnected</span>
+          <span style={{ fontSize: '12px', color: '#94a3b8' }}>Reconnecting...</span>
         </div>
       )}
 
       {connectionState === 'connecting' && (
-        <div className="flex items-center gap-2">
-          <RefreshCw size={16} className="text-yellow-400 animate-spin" />
-          <span className="text-sm text-yellow-400">Connecting...</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <RefreshCw size={16} color="#eab308" style={{ animation: 'spin 1s linear infinite' }} />
+          <span style={{ fontSize: '14px', color: '#ca8a04' }}>Connecting...</span>
         </div>
       )}
 
       {connectionState === 'error' && (
-        <div className="flex items-center gap-2">
-          <AlertCircle size={16} className="text-red-400" />
-          <span className="text-sm text-red-400">Connection failed</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <AlertCircle size={16} color="#ef4444" />
+          <span style={{ fontSize: '14px', color: '#dc2626' }}>Connection failed</span>
           <button
             onClick={handleManualReconnect}
-            className="ml-2 text-xs bg-red-500/20 hover:bg-red-500/30 text-red-400 px-2 py-1 rounded transition-colors"
+            style={{ 
+              marginLeft: '8px', 
+              fontSize: '12px', 
+              padding: '4px 8px',
+              background: '#fee2e2', 
+              color: '#dc2626',
+              border: 'none', 
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
           >
             Retry
           </button>
@@ -131,7 +145,7 @@ export default function ConnectionStatus({ compact = false }: ConnectionStatusPr
       )}
 
       {reconnectAttempt > 0 && connectionState !== 'error' && (
-        <span className="text-xs text-gray-600 ml-2">
+        <span style={{ fontSize: '12px', color: '#94a3b8', marginLeft: '8px' }}>
           Attempt {reconnectAttempt}/5
         </span>
       )}
