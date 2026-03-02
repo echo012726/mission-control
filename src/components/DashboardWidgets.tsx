@@ -30,10 +30,10 @@ function SortableWidget({ widget, children }: { widget: Widget; children: React.
   }
 
   return (
-    <div ref={setNodeRef} style={style} className="bg-gray-800 rounded-lg p-4">
+    <div ref={setNodeRef} style={style} className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="font-medium text-white text-sm">{widget.title}</h3>
-        <button {...attributes} {...listeners} className="text-gray-500 hover:text-gray-400 cursor-grab">
+        <h3 className="font-semibold text-slate-700 text-sm">{widget.title}</h3>
+        <button {...attributes} {...listeners} className="text-slate-400 hover:text-slate-600 cursor-grab">
           <GripHorizontal size={16} />
         </button>
       </div>
@@ -50,21 +50,21 @@ function TaskSummaryWidget({ tasks }: { tasks: Task[] }) {
 
   return (
     <div className="grid grid-cols-2 gap-2">
-      <div className="bg-gray-700/50 rounded p-2 text-center">
-        <div className="text-xl font-bold text-white">{total}</div>
-        <div className="text-xs text-gray-400">Total</div>
+      <div className="bg-slate-100 rounded-lg p-3 text-center">
+        <div className="text-2xl font-bold text-slate-700">{total}</div>
+        <div className="text-xs text-slate-500">Total</div>
       </div>
-      <div className="bg-green-600/20 rounded p-2 text-center">
-        <div className="text-xl font-bold text-green-400">{completed}</div>
-        <div className="text-xs text-gray-400">Done</div>
+      <div className="bg-green-50 rounded-lg p-3 text-center">
+        <div className="text-2xl font-bold text-green-600">{completed}</div>
+        <div className="text-xs text-green-600">Done</div>
       </div>
-      <div className="bg-yellow-600/20 rounded p-2 text-center">
-        <div className="text-xl font-bold text-yellow-400">{inProgress}</div>
-        <div className="text-xs text-gray-400">In Progress</div>
+      <div className="bg-yellow-50 rounded-lg p-3 text-center">
+        <div className="text-2xl font-bold text-yellow-600">{inProgress}</div>
+        <div className="text-xs text-yellow-600">In Progress</div>
       </div>
-      <div className="bg-red-600/20 rounded p-2 text-center">
-        <div className="text-xl font-bold text-red-400">{overdue}</div>
-        <div className="text-xs text-gray-400">Overdue</div>
+      <div className="bg-red-50 rounded-lg p-3 text-center">
+        <div className="text-2xl font-bold text-red-600">{overdue}</div>
+        <div className="text-xs text-red-600">Overdue</div>
       </div>
     </div>
   )

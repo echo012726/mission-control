@@ -8,10 +8,10 @@ import { useSSE } from '@/lib/useSSE'
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, { bg: string; text: string; dot: string }> = {
-    idle: { bg: 'bg-gray-500/20', text: 'text-gray-400', dot: 'bg-gray-400' },
-    running: { bg: 'bg-green-500/20', text: 'text-green-400', dot: 'bg-green-400' },
-    error: { bg: 'bg-red-500/20', text: 'text-red-400', dot: 'bg-red-400' },
-    unknown: { bg: 'bg-yellow-500/20', text: 'text-yellow-400', dot: 'bg-yellow-400' },
+    idle: { bg: 'bg-slate-100', text: 'text-slate-600', dot: 'bg-slate-400' },
+    running: { bg: 'bg-green-100', text: 'text-green-700', dot: 'bg-green-500' },
+    error: { bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-500' },
+    unknown: { bg: 'bg-yellow-100', text: 'text-yellow-700', dot: 'bg-yellow-500' },
   }
 
   const color = colors[status] || colors.unknown
@@ -26,14 +26,14 @@ function StatusBadge({ status }: { status: string }) {
 
 function AgentCardSkeleton() {
   return (
-    <div className="flex items-start justify-between p-3 rounded-lg">
+    <div className="flex items-start justify-between p-3 rounded-lg bg-white border border-slate-200">
       <div className="flex-1 space-y-2">
-        <div className="h-4 bg-gray-700/50 rounded w-32 skeleton" />
-        <div className="h-3 bg-gray-700/30 rounded w-20 skeleton" />
+        <div className="h-4 bg-slate-200 rounded w-32 skeleton" />
+        <div className="h-3 bg-slate-100 rounded w-20 skeleton" />
       </div>
       <div className="flex flex-col items-end gap-2">
-        <div className="h-3 bg-gray-700/30 rounded w-16 skeleton" />
-        <div className="w-8 h-8 bg-gray-700/30 rounded-lg skeleton" />
+        <div className="h-3 bg-slate-100 rounded w-16 skeleton" />
+        <div className="w-8 h-8 bg-slate-100 rounded-lg skeleton" />
       </div>
     </div>
   )

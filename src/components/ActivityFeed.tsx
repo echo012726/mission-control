@@ -12,22 +12,22 @@ interface Activity {
 }
 
 const typeConfig: Record<string, { icon: typeof Activity; color: string; bg: string }> = {
-  task_created: { icon: Plus, color: 'text-green-400', bg: 'bg-green-500/20' },
-  task_moved: { icon: FileText, color: 'text-blue-400', bg: 'bg-blue-500/20' },
-  task_completed: { icon: CheckCircle, color: 'text-emerald-400', bg: 'bg-emerald-500/20' },
-  task_deleted: { icon: Trash2, color: 'text-red-400', bg: 'bg-red-500/20' },
-  agent_heartbeat: { icon: Bot, color: 'text-purple-400', bg: 'bg-purple-500/20' },
-  agent_error: { icon: AlertTriangle, color: 'text-red-400', bg: 'bg-red-500/20' },
-  login: { icon: LogIn, color: 'text-cyan-400', bg: 'bg-cyan-500/20' },
+  task_created: { icon: Plus, color: 'text-green-600', bg: 'bg-green-100' },
+  task_moved: { icon: FileText, color: 'text-blue-600', bg: 'bg-blue-100' },
+  task_completed: { icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-100' },
+  task_deleted: { icon: Trash2, color: 'text-red-600', bg: 'bg-red-100' },
+  agent_heartbeat: { icon: Bot, color: 'text-purple-600', bg: 'bg-purple-100' },
+  agent_error: { icon: AlertTriangle, color: 'text-red-600', bg: 'bg-red-100' },
+  login: { icon: LogIn, color: 'text-cyan-600', bg: 'bg-cyan-100' },
 }
 
 function ActivitySkeleton() {
   return (
-    <div className="flex gap-3 p-2">
-      <div className="w-8 h-8 bg-gray-700/30 rounded-lg skeleton" />
+    <div className="flex gap-3 p-2 bg-white rounded-lg border border-slate-100">
+      <div className="w-8 h-8 bg-slate-100 rounded-lg skeleton" />
       <div className="flex-1 space-y-2">
-        <div className="h-4 bg-gray-700/30 rounded w-3/4 skeleton" />
-        <div className="h-3 bg-gray-700/20 rounded w-1/4 skeleton" />
+        <div className="h-4 bg-slate-100 rounded w-3/4 skeleton" />
+        <div className="h-3 bg-slate-50 rounded w-1/4 skeleton" />
       </div>
     </div>
   )

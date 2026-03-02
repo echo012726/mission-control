@@ -25,7 +25,7 @@ import { useToast } from '@/components/Toast'
 import { useSSE } from '@/lib/useSSE'
 
 const LANES: { id: string; label: string; color: string; icon: string }[] = [
-  { id: 'inbox', label: 'Inbox', color: 'border-gray-500', icon: '📥' },
+  { id: 'inbox', label: 'Inbox', color: 'border-slate-400', icon: '📥' },
   { id: 'planned', label: 'Planned', color: 'border-blue-500', icon: '📋' },
   { id: 'in_progress', label: 'In Progress', color: 'border-yellow-500', icon: '🔄' },
   { id: 'blocked', label: 'Blocked', color: 'border-red-500', icon: '🚫' },
@@ -53,15 +53,15 @@ function formatTime(seconds: number): string {
 
 function TaskCardSkeleton() {
   return (
-    <div className="bg-gray-800/40 rounded-lg p-3 mb-2 border border-white/5">
+    <div className="bg-white rounded-lg p-3 mb-2 border border-slate-200">
       <div className="flex items-start gap-2">
-        <div className="mt-1 w-4 h-4 rounded bg-gray-700/50" />
+        <div className="mt-1 w-4 h-4 rounded bg-slate-200" />
         <div className="flex-1 space-y-2">
-          <div className="h-4 bg-gray-700/50 rounded w-3/4 skeleton" />
-          <div className="h-3 bg-gray-700/30 rounded w-1/2 skeleton" />
+          <div className="h-4 bg-slate-200 rounded w-3/4 skeleton" />
+          <div className="h-3 bg-slate-100 rounded w-1/2 skeleton" />
           <div className="flex gap-2 mt-2">
-            <div className="h-5 bg-gray-700/30 rounded w-12 skeleton" />
-            <div className="h-5 bg-gray-700/30 rounded w-16 skeleton" />
+            <div className="h-5 bg-slate-100 rounded w-12 skeleton" />
+            <div className="h-5 bg-slate-100 rounded w-16 skeleton" />
           </div>
         </div>
       </div>
@@ -85,9 +85,9 @@ function TaskCard({ task, onEdit, isSelected }: { task: Task; onEdit: (task: Tas
   }
 
   const priorityColors = {
-    low: 'bg-gray-600',
-    medium: 'bg-blue-600',
-    high: 'bg-red-600',
+    low: 'bg-slate-200 text-slate-600',
+    medium: 'bg-blue-100 text-blue-700',
+    high: 'bg-red-100 text-red-700',
   }
 
   const tags = task.tags ? (typeof task.tags === 'string' ? JSON.parse(task.tags) : task.tags) : []
@@ -117,8 +117,8 @@ function TaskCard({ task, onEdit, isSelected }: { task: Task; onEdit: (task: Tas
     <div
       ref={setNodeRef}
       style={style}
-      className={`bg-gray-800/40 backdrop-blur-sm rounded-lg p-3 mb-2 cursor-pointer hover:bg-gray-700/50 touch-manipulation transition-all duration-200 border border-transparent hover:border-white/5 task-card-glow ${
-        isDragging ? 'opacity-50 z-50 scale-105 shadow-2xl ring-2 ring-blue-500/50' : ''
+      className={`bg-white rounded-lg p-3 mb-2 cursor-pointer hover:border-slate-300 touch-manipulation transition-all duration-150 border border-slate-200 hover:shadow-sm ${
+        isDragging ? 'opacity-50 z-50 scale-105 shadow-lg ring-2 ring-blue-500/30' : ''
       } ${isSelected ? 'ring-2 ring-blue-500' : ''}`}
       onClick={() => onEdit(task)}
     >
@@ -126,56 +126,60 @@ function TaskCard({ task, onEdit, isSelected }: { task: Task; onEdit: (task: Tas
         <button
           {...attributes}
           {...listeners}
-          className="mt-1 text-gray-500 hover:text-gray-300 cursor-grab active:cursor-grabbing transition-colors hover:bg-white/5 p-1 rounded"
+          className="mt-1 text-slate-400 hover:text-slate-600 cursor-grab active:cursor-grabbing transition-colors hover:bg-slate-100 p-1 rounded"
         >
           <GripVertical size={14} />
         </button>
         <div className="flex-1 min-w-0">
-          <p className="text-white text-sm font-medium truncate">{task.title}</p>
+          <p className="text-slate-800 text-sm font-medium truncate">{task.title}</p>
           {task.description && (
-            <p className="text-gray-400 text-xs mt-1 line-clamp-2">{task.description}</p>
+            <p className="text-slate-500 text-xs mt-1 line-clamp-2">{task.description}</p>
           )}
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             <span
-              className={`text-xs px-2 py-0.5 rounded ${priorityColors[task.priority as keyof typeof priorityColors] || priorityColors.medium}`}
+              className={`text-xs px-2 py-0.5 rounded font-medium ${
+                task.priority === 'high' ? 'bg-red-100 text-red-700' :
+                task.priority === 'medium' ? 'bg-blue-100 text-blue-700' :
+                'bg-slate-100 text-slate-600'
+              }`}
             >
               {task.priority}
             </span>
             {tags.length > 0 && tags.map((tag: string, idx: number) => (
               <span
                 key={idx}
-                className="text-xs px-2 py-0.5 rounded bg-purple-600/50 text-purple-200"
+                className="text-xs px-2 py-0.5 rounded bg-purple-100 text-purple-700 font-medium"
               >
                 {tag}
               </span>
             ))}
             {/* Timer indicator */}
             {isTimerRunning && (
-              <span className="text-xs px-2 py-0.5 rounded bg-green-600/50 text-green-200 flex items-center gap-1 animate-pulse">
+              <span className="text-xs px-2 py-0.5 rounded bg-green-100 text-green-700 flex items-center gap-1">
                 <Play size={10} /> Running
               </span>
             )}
             {/* Time spent */}
             {!isTimerRunning && task.timeSpent > 0 && (
-              <span className="text-xs px-2 py-0.5 rounded bg-gray-600/50 text-gray-300 flex items-center gap-1">
+              <span className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600 flex items-center gap-1">
                 <Clock size={10} /> {formatTime(task.timeSpent)}
               </span>
             )}
             {/* Subtasks progress */}
             {subtasks.length > 0 && (
-              <span className="text-xs px-2 py-0.5 rounded bg-blue-600/50 text-blue-200 flex items-center gap-1">
+              <span className="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700 flex items-center gap-1">
                 <ListChecks size={10} /> {completedSubtasks}/{subtasks.length}
               </span>
             )}
             {/* Recurrence indicator */}
             {task.recurrence && (
-              <span className="text-xs px-2 py-0.5 rounded bg-orange-600/50 text-orange-200 flex items-center gap-1">
+              <span className="text-xs px-2 py-0.5 rounded bg-orange-100 text-orange-700 flex items-center gap-1">
                 <Repeat size={10} /> {task.recurrence}
               </span>
             )}
           </div>
           {task.dueDate && (
-            <div className={`flex items-center gap-1 mt-2 text-xs ${isOverdue ? 'text-red-400' : 'text-gray-400'}`}>
+            <div className={`flex items-center gap-1 mt-2 text-xs ${isOverdue ? 'text-red-600 font-medium' : 'text-slate-500'}`}>
               <Clock size={12} />
               <span>{formatDueDate(task.dueDate)}</span>
             </div>
@@ -205,18 +209,18 @@ function Lane({
 
   return (
     <div className="flex-shrink-0 w-[85vw] sm:w-[280px] md:min-w-[250px] md:max-w-[300px]">
-      <div className={`border-t-2 ${lane.color} px-3 py-2.5 bg-gray-900/80 backdrop-blur-sm rounded-t-lg transition-all ${isActive ? 'bg-gray-800' : ''}`}>
+      <div className={`border-t-4 ${lane.color} px-3 py-3 bg-white rounded-t-lg transition-all ${isActive ? 'bg-slate-50' : ''}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-lg">{lane.icon}</span>
-            <h3 className="font-medium text-white text-sm sm:text-base">{lane.label}</h3>
+            <h3 className="font-semibold text-slate-700 text-sm sm:text-base">{lane.label}</h3>
           </div>
-          <span className="text-gray-400 text-sm bg-gray-800/50 px-2 py-0.5 rounded-full">{tasks.length}</span>
+          <span className="text-slate-500 text-sm bg-slate-100 px-2 py-0.5 rounded-full font-medium">{tasks.length}</span>
         </div>
       </div>
       <div
         ref={setNodeRef}
-        className={`bg-gray-900/40 backdrop-blur-sm p-2 rounded-b-lg min-h-[150px] sm:min-h-[200px] transition-all border border-t-0 border-white/5 ${isOver ? 'lane-drop-active' : ''}`}
+        className={`bg-slate-50 p-2 rounded-b-lg min-h-[150px] sm:min-h-[200px] transition-all border border-t-0 border-slate-200 ${isOver ? 'bg-blue-50 border-blue-200' : ''}`}
         onDragOver={() => onDragOver(lane.id)}
       >
         <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
@@ -226,7 +230,7 @@ function Lane({
         </SortableContext>
         <button
           onClick={() => onAddTask(lane.id)}
-          className="w-full flex items-center justify-center gap-1 text-gray-500 hover:text-gray-300 hover:bg-white/5 py-2.5 text-sm rounded-lg transition-all border border-dashed border-white/10 hover:border-white/20"
+          className="w-full flex items-center justify-center gap-1 text-slate-500 hover:text-slate-700 hover:bg-white py-2.5 text-sm rounded-lg transition-all border border-dashed border-slate-300 hover:border-slate-400"
         >
           <Plus size={14} /> Add task
         </button>
@@ -987,23 +991,23 @@ export default function KanbanBoard() {
   return (
     <div>
       {/* Search and Filter Bar */}
-      <div className="glass-card rounded-xl p-3 mb-4 border border-white/10">
+      <div className="bg-white rounded-xl p-3 mb-4 border border-slate-200 shadow-sm">
         <div className="flex flex-col sm:flex-row gap-2">
           <div className="relative flex-1">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               ref={searchRef}
               type="text"
               placeholder="Search tasks... (press /)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-gray-900/60 backdrop-blur-sm border border-white/10 rounded-lg pl-9 pr-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/30 transition-all placeholder:text-gray-600"
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-2.5 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all placeholder:text-slate-400"
             />
-         :text-gray-600 </div>
+          </div>
           <select
             value={filterPriority}
             onChange={(e) => setFilterPriority(e.target.value)}
-            className="bg-gray-900/60 backdrop-blur-sm border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/30 transition-all"
+            className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all"
           >
             <option value="">All Priorities</option>
             {PRIORITIES.map(p => (
@@ -1015,12 +1019,12 @@ export default function KanbanBoard() {
             placeholder="Filter by tag..."
             value={filterTags}
             onChange={(e) => setFilterTags(e.target.value)}
-            className="bg-gray-900/60 backdrop-blur-sm border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm w-full sm:w-32 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/30 transition-all placeholder:text-gray-600"
+            className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-slate-700 text-sm w-full sm:w-32 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all placeholder:text-slate-400"
           />
           {hasFilters && (
             <button
               onClick={clearFilters}
-              className="flex items-center justify-center gap-1 bg-white/10 hover:bg-white/20 text-white px-3 py-2.5 rounded-lg text-sm transition-all"
+              className="flex items-center justify-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-2.5 rounded-lg text-sm transition-all"
             >
               <X size={14} />
               Clear
@@ -1028,7 +1032,7 @@ export default function KanbanBoard() {
           )}
           <button
             onClick={exportToCSV}
-            className="flex items-center justify-center gap-1 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white px-3 py-2.5 rounded-lg text-sm transition-all shadow-lg shadow-green-500/20"
+            className="flex items-center justify-center gap-1 bg-green-600 hover:bg-green-700 text-white px-3 py-2.5 rounded-lg text-sm transition-all shadow-sm"
             title="Export to CSV"
           >
             <Download size={14} />
@@ -1037,21 +1041,21 @@ export default function KanbanBoard() {
         </div>
         
         {/* Keyboard shortcuts hint */}
-        <div className="mt-3 text-xs text-gray-500 flex flex-wrap gap-3">
-          <span><kbd className="bg-white/10 px-1.5 py-0.5 rounded">n</kbd> new task</span>
-          <span><kbd className="bg-white/10 px-1.5 py-0.5 rounded">/</kbd> search</span>
-          <span><kbd className="bg-white/10 px-1.5 py-0.5 rounded">←→</kbd> lanes</span>
-          <span><kbd className="bg-white/10 px-1.5 py-0.5 rounded">↑↓</kbd> navigate</span>
-          <span><kbd className="bg-white/10 px-1.5 py-0.5 rounded">Enter</kbd> open</span>
+        <div className="mt-3 text-xs text-slate-400 flex flex-wrap gap-3">
+          <span><kbd className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">n</kbd> new task</span>
+          <span><kbd className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">/</kbd> search</span>
+          <span><kbd className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">←→</kbd> lanes</span>
+          <span><kbd className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">↑↓</kbd> navigate</span>
+          <span><kbd className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">Enter</kbd> open</span>
         </div>
       </div>
 
       {/* Loading state */}
       {loading ? (
-        <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-4">
+        <div className="flex gap-4 overflow-x-auto pb-4">
           {LANES.map((lane) => (
             <div key={lane.id} className="flex-shrink-0 w-[85vw] sm:w-[280px] md:min-w-[250px] md:max-w-[300px]">
-              <div className={`border-t-2 ${lane.color} px-3 py-2.5 glass-card rounded-t-lg`}>
+              <div className={`border-t-4 ${lane.color} px-3 py-3 bg-white rounded-t-lg border border-b-0 border-slate-200`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-lg">{lane.icon}</span>
@@ -1060,7 +1064,7 @@ export default function KanbanBoard() {
                   <div className="skeleton skeleton-text w-8" />
                 </div>
               </div>
-              <div className="bg-gray-900/60 backdrop-blur-sm p-2 rounded-b-lg min-h-[150px] sm:min-h-[200px]">
+              <div className="bg-slate-50 p-2 rounded-b-lg min-h-[150px] sm:min-h-[200px] border border-t-0 border-slate-200">
                 <div className="space-y-2">
                   <TaskCardSkeleton />
                   <TaskCardSkeleton />
@@ -1077,15 +1081,15 @@ export default function KanbanBoard() {
             <button
               onClick={() => setSelectedLane(prev => Math.max(0, prev - 1))}
               disabled={selectedLane === 0}
-              className="p-2 bg-gray-800 rounded disabled:opacity-50"
+              className="p-2 bg-white border border-slate-200 rounded-lg disabled:opacity-50 hover:bg-slate-50"
             >
               <ChevronLeft size={20} />
             </button>
-            <span className="text-white font-medium">{LANES[selectedLane].label}</span>
+            <span className="text-slate-700 font-semibold">{LANES[selectedLane].label}</span>
             <button
               onClick={() => setSelectedLane(prev => Math.min(LANES.length - 1, prev + 1))}
               disabled={selectedLane === LANES.length - 1}
-              className="p-2 bg-gray-800 rounded disabled:opacity-50"
+              className="p-2 bg-white border border-slate-200 rounded-lg disabled:opacity-50 hover:bg-slate-50"
             >
               <ChevronRight size={20} />
             </button>
@@ -1138,59 +1142,59 @@ export default function KanbanBoard() {
 
       {/* Add Task Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 p-6 rounded-lg w-full max-w-md animate-fade-in">
-            <h2 className="text-xl font-bold text-white mb-4">Add Task</h2>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-6 rounded-xl w-full max-w-md animate-fade-in shadow-xl">
+            <h2 className="text-xl font-bold text-slate-800 mb-4">Add Task</h2>
             <input
               type="text"
               placeholder="Task title"
               value={newTask.title}
               onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
-              className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-slate-800 mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
               autoFocus
             />
             <textarea
               placeholder="Description (optional)"
               value={newTask.description}
               onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-              className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white mb-3 h-24 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-slate-800 mb-3 h-24 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
             />
             <select
               value={newTask.priority}
               onChange={(e) => setNewTask({ ...newTask, priority: e.target.value })}
-              className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-slate-700 mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
             >
               <option value="low">Low</option>
               <option value="medium">Medium</option>
               <option value="high">High</option>
             </select>
             <div className="relative mb-4">
-              <Tag size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+              <Tag size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 placeholder="Tags (comma-separated)"
                 value={newTask.tags}
                 onChange={(e) => setNewTask({ ...newTask, tags: e.target.value })}
-                className="w-full bg-gray-800 border border-gray-700 rounded pl-9 pr-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-2.5 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
               />
             </div>
             <div className="flex items-center gap-2 mb-4">
-              <Calendar size={16} className="text-gray-500" />
-              <label className="text-gray-400 text-sm">Due Date:</label>
+              <Calendar size={16} className="text-slate-400" />
+              <label className="text-slate-600 text-sm">Due Date:</label>
               <input
                 type="date"
                 value={newTask.dueDate}
                 onChange={(e) => setNewTask({ ...newTask, dueDate: e.target.value })}
-                className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1"
+                className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 flex-1"
               />
             </div>
             <div className="flex items-center gap-2 mb-4">
-              <Repeat size={16} className="text-gray-500" />
-              <label className="text-gray-400 text-sm">Repeat:</label>
+              <Repeat size={16} className="text-slate-400" />
+              <label className="text-slate-600 text-sm">Repeat:</label>
               <select
                 value={newTask.recurrence}
                 onChange={(e) => setNewTask({ ...newTask, recurrence: e.target.value })}
-                className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1"
+                className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 flex-1"
               >
                 {RECURRENCE_OPTIONS.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -1200,13 +1204,13 @@ export default function KanbanBoard() {
             <div className="flex gap-2">
               <button
                 onClick={handleAddTask}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded transition-colors"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg transition-colors font-medium"
               >
-                Add
+                Add Task
               </button>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 rounded transition-colors"
+                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-2.5 rounded-lg transition-colors font-medium"
               >
                 Cancel
               </button>
@@ -1217,17 +1221,17 @@ export default function KanbanBoard() {
 
       {/* Edit Task Modal */}
       {editingTask && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 p-6 rounded-lg w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col animate-fade-in">
-            <h2 className="text-xl font-bold text-white mb-4">Edit Task</h2>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-6 rounded-xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col animate-fade-in shadow-xl">
+            <h2 className="text-xl font-bold text-slate-800 mb-4">Edit Task</h2>
             
             {/* Tabs */}
-            <div className="flex border-b border-gray-700 mb-4 overflow-x-auto">
+            <div className="flex border-b border-slate-200 mb-4 overflow-x-auto">
               <button
                 onClick={() => setActiveTaskTab('details')}
                 className={`px-4 py-2 text-sm transition-colors whitespace-nowrap ${
                   activeTaskTab === 'details' 
-                    ? 'text-blue-400 border-b-2 border-blue-400' 
+                    ? 'text-blue-600 border-b-2 border-blue-600 font-medium' 
                     : 'text-gray-400 hover:text-white'
                 }`}
               >
@@ -1248,8 +1252,8 @@ export default function KanbanBoard() {
                 onClick={() => setActiveTaskTab('comments')}
                 className={`px-4 py-2 text-sm transition-colors flex items-center gap-1 whitespace-nowrap ${
                   activeTaskTab === 'comments' 
-                    ? 'text-blue-400 border-b-2 border-blue-400' 
-                    : 'text-gray-400 hover:text-white'
+                    ? 'text-blue-600 border-b-2 border-blue-600 font-medium' 
+                    : 'text-slate-400 hover:text-slate-600'
                 }`}
               >
                 <MessageSquare size={14} />
@@ -1259,8 +1263,8 @@ export default function KanbanBoard() {
                 onClick={() => setActiveTaskTab('attachments')}
                 className={`px-4 py-2 text-sm transition-colors flex items-center gap-1 whitespace-nowrap ${
                   activeTaskTab === 'attachments' 
-                    ? 'text-blue-400 border-b-2 border-blue-400' 
-                    : 'text-gray-400 hover:text-white'
+                    ? 'text-blue-600 border-b-2 border-blue-600 font-medium' 
+                    : 'text-slate-400 hover:text-slate-600'
                 }`}
               >
                 <Paperclip size={14} />
@@ -1276,19 +1280,19 @@ export default function KanbanBoard() {
                     type="text"
                     value={editingTask.title}
                     onChange={(e) => setEditingTask({ ...editingTask, title: e.target.value })}
-                    className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                     placeholder="Task title"
                   />
                   <textarea
                     value={editingTask.description || ''}
                     onChange={(e) => setEditingTask({ ...editingTask, description: e.target.value })}
-                    className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white h-24 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-slate-800 h-24 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                     placeholder="Description (optional)"
                   />
                   <select
                     value={editingTask.priority}
                     onChange={(e) => setEditingTask({ ...editingTask, priority: e.target.value })}
-                    className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                   >
                     <option value="low">Low Priority</option>
                     <option value="medium">Medium Priority</option>
@@ -1297,18 +1301,18 @@ export default function KanbanBoard() {
                   
                   {/* Due Date */}
                   <div className="flex items-center gap-2">
-                    <Calendar size={16} className="text-gray-500" />
-                    <label className="text-gray-400 text-sm">Due Date:</label>
+                    <Calendar size={16} className="text-slate-400" />
+                    <label className="text-slate-600 text-sm">Due Date:</label>
                     <input
                       type="date"
                       value={editingTask.dueDate ? editingTask.dueDate.split('T')[0] : ''}
                       onChange={(e) => handleUpdateDueDate(e.target.value || null)}
-                      className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1"
+                      className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 flex-1"
                     />
                     {editingTask.dueDate && (
                       <button
                         onClick={() => handleUpdateDueDate(null)}
-                        className="text-gray-400 hover:text-white"
+                        className="text-slate-400 hover:text-slate-600"
                         title="Clear due date"
                       >
                         <X size={16} />
@@ -1318,7 +1322,7 @@ export default function KanbanBoard() {
 
                   {/* Tags */}
                   <div className="relative">
-                    <Tag size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                    <Tag size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
                       type="text"
                       placeholder="Tags (comma-separated)"
@@ -1330,18 +1334,18 @@ export default function KanbanBoard() {
                           tags: tagArray as unknown as string
                         })
                       }}
-                      className="w-full bg-gray-800 border border-gray-700 rounded pl-9 pr-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-2.5 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                     />
                   </div>
 
                   {/* Labels */}
                   <div>
                     <div className="flex items-center gap-2 mb-2">
-                      <Tag size={16} className="text-gray-500" />
-                      <label className="text-gray-400 text-sm">Labels:</label>
+                      <Tag size={16} className="text-slate-400" />
+                      <label className="text-slate-600 text-sm">Labels:</label>
                       <button
                         onClick={() => setShowLabelManager(!showLabelManager)}
-                        className="text-xs text-blue-400 hover:text-blue-300"
+                        className="text-xs text-blue-600 hover:text-blue-700"
                       >
                         {showLabelManager ? 'Hide' : 'Manage'}
                       </button>
