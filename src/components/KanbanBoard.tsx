@@ -24,12 +24,12 @@ import { Task, TaskComment, TaskAttachment, SubTask, Label } from '@/types'
 import { useToast } from '@/components/Toast'
 import { useSSE } from '@/lib/useSSE'
 
-const LANES = [
-  { id: 'inbox', label: 'Inbox', color: 'border-gray-500' },
-  { id: 'planned', label: 'Planned', color: 'border-blue-500' },
-  { id: 'in_progress', label: 'In Progress', color: 'border-yellow-500' },
-  { id: 'blocked', label: 'Blocked', color: 'border-red-500' },
-  { id: 'done', label: 'Done', color: 'border-green-500' },
+const LANES: { id: string; label: string; color: string; icon: string }[] = [
+  { id: 'inbox', label: 'Inbox', color: 'border-gray-500', icon: '📥' },
+  { id: 'planned', label: 'Planned', color: 'border-blue-500', icon: '📋' },
+  { id: 'in_progress', label: 'In Progress', color: 'border-yellow-500', icon: '🔄' },
+  { id: 'blocked', label: 'Blocked', color: 'border-red-500', icon: '🚫' },
+  { id: 'done', label: 'Done', color: 'border-green-500', icon: '✅' },
 ]
 
 const PRIORITIES = ['low', 'medium', 'high']
@@ -49,6 +49,24 @@ function formatTime(seconds: number): string {
     return `${hours}h ${minutes}m`
   }
   return `${minutes}m`
+}
+
+function TaskCardSkeleton() {
+  return (
+    <div className="bg-gray-800/50 rounded-lg p-3 mb-2 animate-pulse">
+      <div className="flex items-start gap-2">
+        <div className="mt-1 w-4 h-4 rounded bg-gray-700" />
+        <div className="flex-1 space-y-2">
+          <div className="h-4 bg-gray-700 rounded w-3/4" />
+          <div className="h-3 bg-gray-700/50 rounded w-1/2" />
+          <div className="flex gap-2 mt-2">
+            <div className="h-5 bg-gray-700/50 rounded w-12" />
+            <div className="h-5 bg-gray-700/50 rounded w-16" />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function TaskCard({ task, onEdit, isSelected }: { task: Task; onEdit: (task: Task) => void; isSelected?: boolean }) {
@@ -966,7 +984,7 @@ export default function KanbanBoard() {
   return (
     <div>
       {/* Search and Filter Bar */}
-      <div className="bg-gray-800 rounded-lg p-3 mb-4">
+      <div className="glass-card rounded-xl p-3 mb-4">
         <div className="flex flex-col sm:flex-row gap-2">
           <div className="relative flex-1">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
@@ -976,13 +994,13 @@ export default function KanbanBoard() {
               placeholder="Search tasks... (press /)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-gray-900 border border-gray-700 rounded pl-9 pr-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full bg-gray-900/50 border border-white/10 rounded-lg pl-9 pr-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
             />
           </div>
           <select
             value={filterPriority}
             onChange={(e) => setFilterPriority(e.target.value)}
-            className="bg-gray-900 border border-gray-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="bg-gray-900/50 border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
           >
             <option value="">All Priorities</option>
             {PRIORITIES.map(p => (
@@ -994,12 +1012,12 @@ export default function KanbanBoard() {
             placeholder="Filter by tag..."
             value={filterTags}
             onChange={(e) => setFilterTags(e.target.value)}
-            className="bg-gray-900 border border-gray-700 rounded px-3 py-2 text-white text-sm w-full sm:w-32 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="bg-gray-900/50 border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm w-full sm:w-32 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
           />
           {hasFilters && (
             <button
               onClick={clearFilters}
-              className="flex items-center justify-center gap-1 bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded text-sm transition-colors"
+              className="flex items-center justify-center gap-1 bg-white/10 hover:bg-white/20 text-white px-3 py-2.5 rounded-lg text-sm transition-all"
             >
               <X size={14} />
               Clear
@@ -1007,7 +1025,7 @@ export default function KanbanBoard() {
           )}
           <button
             onClick={exportToCSV}
-            className="flex items-center justify-center gap-1 bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded text-sm transition-colors"
+            className="flex items-center justify-center gap-1 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white px-3 py-2.5 rounded-lg text-sm transition-all shadow-lg shadow-green-500/20"
             title="Export to CSV"
           >
             <Download size={14} />
@@ -1016,20 +1034,38 @@ export default function KanbanBoard() {
         </div>
         
         {/* Keyboard shortcuts hint */}
-        <div className="mt-2 text-xs text-gray-500 flex flex-wrap gap-3">
-          <span><kbd className="bg-gray-700 px-1 rounded">n</kbd> new task</span>
-          <span><kbd className="bg-gray-700 px-1 rounded">/</kbd> search</span>
-          <span><kbd className="bg-gray-700 px-1 rounded">←→</kbd> lanes</span>
-          <span><kbd className="bg-gray-700 px-1 rounded">↑↓</kbd> navigate</span>
-          <span><kbd className="bg-gray-700 px-1 rounded">Enter</kbd> open</span>
+        <div className="mt-3 text-xs text-gray-500 flex flex-wrap gap-3">
+          <span><kbd className="bg-white/10 px-1.5 py-0.5 rounded">n</kbd> new task</span>
+          <span><kbd className="bg-white/10 px-1.5 py-0.5 rounded">/</kbd> search</span>
+          <span><kbd className="bg-white/10 px-1.5 py-0.5 rounded">←→</kbd> lanes</span>
+          <span><kbd className="bg-white/10 px-1.5 py-0.5 rounded">↑↓</kbd> navigate</span>
+          <span><kbd className="bg-white/10 px-1.5 py-0.5 rounded">Enter</kbd> open</span>
         </div>
       </div>
 
       {/* Loading state */}
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="animate-spin text-blue-500" size={32} />
-          <span className="ml-3 text-gray-400">Loading tasks...</span>
+        <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-4">
+          {LANES.map((lane) => (
+            <div key={lane.id} className="flex-shrink-0 w-[85vw] sm:w-[280px] md:min-w-[250px] md:max-w-[300px]">
+              <div className={`border-t-2 ${lane.color} px-3 py-2.5 glass-card rounded-t-lg`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{lane.icon}</span>
+                    <div className="skeleton skeleton-text w-20" />
+                  </div>
+                  <div className="skeleton skeleton-text w-8" />
+                </div>
+              </div>
+              <div className="bg-gray-900/60 backdrop-blur-sm p-2 rounded-b-lg min-h-[150px] sm:min-h-[200px]">
+                <div className="space-y-2">
+                  <TaskCardSkeleton />
+                  <TaskCardSkeleton />
+                  <TaskCardSkeleton />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         <>

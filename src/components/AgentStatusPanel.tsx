@@ -1,24 +1,41 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { RefreshCw, Circle, Play, Square, Loader2, Wifi, WifiOff } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { RefreshCw, Circle, Play, Square, Loader2, Wifi, WifiOff, Bot, Activity, AlertTriangle } from 'lucide-react'
 import { Agent } from '@/types'
 import { useToast } from '@/components/Toast'
 import { useSSE } from '@/lib/useSSE'
 
 function StatusBadge({ status }: { status: string }) {
-  const colors: Record<string, string> = {
-    idle: 'bg-gray-500',
-    running: 'bg-green-500',
-    error: 'bg-red-500',
-    unknown: 'bg-yellow-500',
+  const colors: Record<string, { bg: string; text: string; dot: string }> = {
+    idle: { bg: 'bg-gray-500/20', text: 'text-gray-400', dot: 'bg-gray-400' },
+    running: { bg: 'bg-green-500/20', text: 'text-green-400', dot: 'bg-green-400' },
+    error: { bg: 'bg-red-500/20', text: 'text-red-400', dot: 'bg-red-400' },
+    unknown: { bg: 'bg-yellow-500/20', text: 'text-yellow-400', dot: 'bg-yellow-400' },
   }
 
+  const color = colors[status] || colors.unknown
+
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs ${colors[status] || colors.unknown}`}>
-      <Circle size={8} fill="currentColor" />
-      {status}
+    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${color.bg} ${color.text}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${color.dot} ${status === 'running' ? 'animate-pulse' : ''}`} />
+      {status.charAt(0).toUpperCase() + status.slice(1)}
     </span>
+  )
+}
+
+function AgentCardSkeleton() {
+  return (
+    <div className="flex items-start justify-between p-3 rounded-lg">
+      <div className="flex-1 space-y-2">
+        <div className="skeleton skeleton-text w-32" />
+        <div className="skeleton skeleton-text w-20" />
+      </div>
+      <div className="flex flex-col items-end gap-2">
+        <div className="skeleton skeleton-text w-16" />
+        <div className="skeleton w-8 h-8 rounded-lg" />
+      </div>
+    </div>
   )
 }
 
@@ -32,8 +49,7 @@ export default function AgentStatusPanel({ onAgentClick }: AgentStatusPanelProps
   const [provisioning, setProvisioning] = useState<string | null>(null)
   const { showToast } = useToast()
 
-  const fetchAgents = async () => {
-    setLoading(true)
+  const fetchAgents = useCallback(async () => {
     try {
       const res = await fetch('/api/agents')
       if (res.ok) {
@@ -42,17 +58,16 @@ export default function AgentStatusPanel({ onAgentClick }: AgentStatusPanelProps
       }
     } catch (e) {
       console.error('Failed to fetch agents', e)
-      showToast('Failed to load agents', 'error')
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     fetchAgents()
-  }, [])
+  }, [fetchAgents])
 
-  // Real-time updates via SSE
+  // Real-time updates via SSE with connection status
   const { connected } = useSSE({
     onAgentUpdate: () => {
       fetchAgents()
@@ -68,7 +83,7 @@ export default function AgentStatusPanel({ onAgentClick }: AgentStatusPanelProps
         body: JSON.stringify({ agentId, action }),
       })
       if (res.ok) {
-        showToast(`Agent ${action}ed`, 'success')
+        showToast(`Agent ${action === 'start' ? 'started' : 'stopped'} successfully`, 'success')
         fetchAgents()
       } else {
         showToast(`Failed to ${action} agent`, 'error')
@@ -89,63 +104,110 @@ export default function AgentStatusPanel({ onAgentClick }: AgentStatusPanelProps
     
     if (diff < 60) return `${diff}s ago`
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
-    return date.toLocaleTimeString()
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  }
+
+  const getAgentIcon = (status: string) => {
+    switch (status) {
+      case 'running':
+        return <Activity size={16} className="text-green-400" />
+      case 'error':
+        return <AlertTriangle size={16} className="text-red-400" />
+      default:
+        return <Bot size={16} className="text-gray-400" />
+    }
   }
 
   return (
-    <div className="bg-gray-900 rounded-lg border border-gray-800">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
-        <div className="flex items-center gap-2">
-          <h2 className="font-semibold text-white">Agent Status</h2>
-          {connected ? (
-            <span title="Real-time connected"><Wifi size={14} className="text-green-500" /></span>
-          ) : (
-            <span title="Connecting..."><WifiOff size={14} className="text-gray-500" /></span>
-          )}
+    <div className="glass-card rounded-xl overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-blue-500/10">
+            <Bot size={18} className="text-blue-400" />
+          </div>
+          <h2 className="font-semibold text-white">Agents</h2>
+          <div className="flex items-center gap-1.5">
+            {connected ? (
+              <span className="flex items-center gap-1 text-xs text-green-400">
+                <Wifi size={12} />
+                <span className="hidden sm:inline">Live</span>
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-xs text-gray-500">
+                <WifiOff size={12} />
+                <span className="hidden sm:inline">Offline</span>
+              </span>
+            )}
+          </div>
         </div>
         <button
           onClick={fetchAgents}
           disabled={loading}
-          className="text-gray-400 hover:text-white disabled:opacity-50 transition-colors"
+          className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-all disabled:opacity-50"
+          title="Refresh agents"
         >
           <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
         </button>
       </div>
-      <div className="p-4">
+
+      {/* Content */}
+      <div className="p-3">
         {loading ? (
-          <div className="flex items-center justify-center py-4">
-            <Loader2 className="animate-spin text-blue-500" size={24} />
+          <div className="space-y-2">
+            <AgentCardSkeleton />
+            <AgentCardSkeleton />
           </div>
         ) : agents.length === 0 ? (
-          <p className="text-gray-500 text-sm">No agents found</p>
+          <div className="empty-state py-6">
+            <Bot size={40} className="empty-state-icon text-gray-600" />
+            <p className="text-gray-400 text-sm">No agents found</p>
+            <p className="text-gray-600 text-xs mt-1">Agents will appear here when connected</p>
+          </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {agents.map((agent) => (
               <div 
                 key={agent.id} 
-                className={`flex items-start justify-between ${onAgentClick ? 'cursor-pointer hover:bg-gray-800/50 -mx-2 px-2 py-1 rounded' : ''}`}
+                className={`group flex items-start gap-3 p-3 rounded-lg bg-gray-800/30 hover:bg-gray-800/60 transition-all ${
+                  onAgentClick ? 'cursor-pointer' : ''
+                }`}
                 onClick={() => onAgentClick?.(agent.id)}
               >
-                <div className="min-w-0 flex-1">
+                <div className="p-2 rounded-lg bg-gray-700/50 group-hover:bg-gray-700 transition-colors">
+                  {getAgentIcon(agent.status)}
+                </div>
+                <div className="flex-1 min-w-0">
                   <p className="text-white text-sm font-medium truncate">{agent.id}</p>
-                  <StatusBadge status={agent.status} />
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <StatusBadge status={agent.status} />
+                  </div>
                   {agent.currentTask && (
-                    <p className="text-gray-400 text-xs mt-1 truncate">Task: {agent.currentTask}</p>
+                    <p className="text-gray-500 text-xs mt-1.5 truncate flex items-center gap-1">
+                      <Activity size={10} />
+                      {agent.currentTask}
+                    </p>
                   )}
                   {agent.error && (
-                    <p className="text-red-400 text-xs mt-1 truncate">Error: {agent.error}</p>
+                    <p className="text-red-400/80 text-xs mt-1 truncate flex items-center gap-1">
+                      <AlertTriangle size={10} />
+                      {agent.error}
+                    </p>
                   )}
                 </div>
-                <div className="flex flex-col items-end gap-1 ml-2">
+                <div className="flex flex-col items-end gap-2">
                   <span className="text-gray-500 text-xs">
                     {formatTime(agent.lastHeartbeat)}
                   </span>
-                  <div className="flex gap-1">
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     {agent.status === 'idle' || agent.status === 'error' ? (
                       <button
-                        onClick={() => handleProvision(agent.id, 'start')}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleProvision(agent.id, 'start')
+                        }}
                         disabled={provisioning === agent.id}
-                        className="p-1 text-green-400 hover:text-green-300 disabled:opacity-50 transition-colors"
+                        className="p-1.5 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-colors disabled:opacity-50"
                         title="Start agent"
                       >
                         {provisioning === agent.id ? (
@@ -156,9 +218,12 @@ export default function AgentStatusPanel({ onAgentClick }: AgentStatusPanelProps
                       </button>
                     ) : agent.status === 'running' ? (
                       <button
-                        onClick={() => handleProvision(agent.id, 'stop')}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleProvision(agent.id, 'stop')
+                        }}
                         disabled={provisioning === agent.id}
-                        className="p-1 text-red-400 hover:text-red-300 disabled:opacity-50 transition-colors"
+                        className="p-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors disabled:opacity-50"
                         title="Stop agent"
                       >
                         {provisioning === agent.id ? (

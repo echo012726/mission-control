@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { RefreshCw, Loader2, Wifi, WifiOff } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { RefreshCw, Loader2, Wifi, WifiOff, Activity, Bot, CheckCircle, Plus, Trash2, AlertTriangle, LogIn, FileText, Clock } from 'lucide-react'
 import { useSSE } from '@/lib/useSSE'
 
 interface Activity {
@@ -11,44 +11,63 @@ interface Activity {
   createdAt: string
 }
 
-const typeLabels: Record<string, string> = {
-  task_created: 'Task created',
-  task_moved: 'Task moved',
-  task_completed: 'Task completed',
-  task_deleted: 'Task deleted',
-  agent_heartbeat: 'Agent heartbeat',
-  agent_error: 'Agent error',
-  login: 'User logged in',
+const typeConfig: Record<string, { icon: typeof Activity; color: string; bg: string }> = {
+  task_created: { icon: Plus, color: 'text-green-400', bg: 'bg-green-500/20' },
+  task_moved: { icon: FileText, color: 'text-blue-400', bg: 'bg-blue-500/20' },
+  task_completed: { icon: CheckCircle, color: 'text-emerald-400', bg: 'bg-emerald-500/20' },
+  task_deleted: { icon: Trash2, color: 'text-red-400', bg: 'bg-red-500/20' },
+  agent_heartbeat: { icon: Bot, color: 'text-purple-400', bg: 'bg-purple-500/20' },
+  agent_error: { icon: AlertTriangle, color: 'text-red-400', bg: 'bg-red-500/20' },
+  login: { icon: LogIn, color: 'text-cyan-400', bg: 'bg-cyan-500/20' },
+}
+
+function ActivitySkeleton() {
+  return (
+    <div className="flex gap-3 p-2">
+      <div className="skeleton w-8 h-8 rounded-lg" />
+      <div className="flex-1 space-y-2">
+        <div className="skeleton skeleton-text w-3/4" />
+        <div className="skeleton skeleton-text w-1/4" />
+      </div>
+    </div>
+  )
 }
 
 export default function ActivityFeed() {
   const [activities, setActivities] = useState<Activity[]>([])
   const [loading, setLoading] = useState(true)
+  const [isFirstLoad, setIsFirstLoad] = useState(true)
+  const containerRef = useRef<HTMLDivElement>(null)
 
-  const fetchActivities = async () => {
+  const fetchActivities = useCallback(async () => {
     setLoading(true)
     try {
       const res = await fetch('/api/activity?limit=20')
       if (res.ok) {
         const data = await res.json()
         setActivities(data)
+        setIsFirstLoad(false)
       }
     } catch (e) {
       console.error('Failed to fetch activities', e)
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     fetchActivities()
-  }, [])
+  }, [fetchActivities])
 
   // Real-time updates via SSE
   const { connected } = useSSE({
     onActivity: (data) => {
       const newActivity = data as Activity
-      setActivities(prev => [newActivity, ...prev].slice(0, 20))
+      setActivities(prev => {
+        // Avoid duplicates
+        if (prev.some(a => a.id === newActivity.id)) return prev
+        return [newActivity, ...prev].slice(0, 20)
+      })
     },
   })
 
@@ -64,64 +83,120 @@ export default function ActivityFeed() {
   }
 
   const getActivityDescription = (activity: Activity) => {
-    const label = typeLabels[activity.type] || activity.type
+    const label = activity.type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
     try {
       const payload = JSON.parse(activity.payload)
       if (activity.type === 'task_created') {
-        return `${label}: ${payload.title}`
+        return { title: label, subtitle: payload.title }
       }
       if (activity.type === 'task_moved') {
-        return `${label}: ${payload.from} → ${payload.to}`
+        return { title: label, subtitle: `${payload.from} → ${payload.to}` }
+      }
+      if (activity.type === 'task_completed') {
+        return { title: label, subtitle: payload.title }
       }
       if (activity.type === 'login') {
-        return `${label}`
+        return { title: label, subtitle: payload.email || 'User' }
       }
       if (activity.type === 'agent_heartbeat') {
-        return `${label}: ${payload.agentId}`
+        return { title: label, subtitle: payload.agentId }
       }
       if (activity.type === 'agent_error') {
-        return `${label}: ${payload.agentId} - ${payload.error}`
+        return { title: label, subtitle: `${payload.agentId}: ${payload.error}` }
       }
     } catch {
       // Payload not JSON
     }
-    return label
+    return { title: label, subtitle: null }
+  }
+
+  const getActivityIcon = (type: string) => {
+    const config = typeConfig[type] || typeConfig.task_created
+    const Icon = config.icon
+    return <Icon size={14} className={config.color} />
+  }
+
+  const getActivityBg = (type: string) => {
+    const config = typeConfig[type]
+    return config?.bg || 'bg-gray-500/20'
   }
 
   return (
-    <div className="bg-gray-900 rounded-lg border border-gray-800">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
-        <div className="flex items-center gap-2">
+    <div className="glass-card rounded-xl overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-purple-500/10">
+            <Activity size={18} className="text-purple-400" />
+          </div>
           <h2 className="font-semibold text-white">Activity</h2>
-          {connected ? (
-            <span title="Real-time connected"><Wifi size={14} className="text-green-500" /></span>
-          ) : (
-            <span title="Connecting..."><WifiOff size={14} className="text-gray-500" /></span>
-          )}
+          <div className="flex items-center gap-1.5">
+            {connected ? (
+              <span className="flex items-center gap-1 text-xs text-green-400">
+                <Wifi size={12} />
+                <span className="hidden sm:inline">Live</span>
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-xs text-gray-500">
+                <WifiOff size={12} />
+                <span className="hidden sm:inline">Offline</span>
+              </span>
+            )}
+          </div>
         </div>
         <button
           onClick={fetchActivities}
           disabled={loading}
-          className="text-gray-400 hover:text-white disabled:opacity-50 text-sm transition-colors"
+          className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-all disabled:opacity-50"
+          title="Refresh activity"
         >
           <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
         </button>
       </div>
-      <div className="p-4 max-h-[300px] overflow-y-auto">
-        {loading ? (
-          <div className="flex items-center justify-center py-4">
-            <Loader2 className="animate-spin text-blue-500" size={24} />
+
+      {/* Content */}
+      <div 
+        ref={containerRef}
+        className="p-2 max-h-[320px] overflow-y-auto"
+      >
+        {loading && isFirstLoad ? (
+          <div className="space-y-1">
+            <ActivitySkeleton />
+            <ActivitySkeleton />
+            <ActivitySkeleton />
           </div>
         ) : activities.length === 0 ? (
-          <p className="text-gray-500 text-sm">No activity yet</p>
+          <div className="empty-state py-8">
+            <Activity size={40} className="empty-state-icon text-gray-600" />
+            <p className="text-gray-400 text-sm">No activity yet</p>
+            <p className="text-gray-600 text-xs mt-1">Actions will appear here in real-time</p>
+          </div>
         ) : (
-          <div className="space-y-3">
-            {activities.map((activity) => (
-              <div key={activity.id} className="text-sm">
-                <p className="text-white">{getActivityDescription(activity)}</p>
-                <p className="text-gray-500 text-xs">{formatTime(activity.createdAt)}</p>
-              </div>
-            ))}
+          <div className="space-y-1">
+            {activities.map((activity, index) => {
+              const { title, subtitle } = getActivityDescription(activity)
+              return (
+                <div 
+                  key={activity.id}
+                  className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-white/5 transition-colors animate-fade-in-up"
+                  style={{ animationDelay: `${index * 30}ms` }}
+                >
+                  <div className={`p-2 rounded-lg ${getActivityBg(activity.type)} shrink-0`}>
+                    {getActivityIcon(activity.type)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-sm truncate">{title}</p>
+                    {subtitle && (
+                      <p className="text-gray-500 text-xs truncate mt-0.5">{subtitle}</p>
+                    )}
+                    <p className="text-gray-600 text-xs mt-1 flex items-center gap-1">
+                      <Clock size={10} />
+                      {formatTime(activity.createdAt)}
+                    </p>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         )}
       </div>
