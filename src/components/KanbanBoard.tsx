@@ -19,7 +19,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Plus, GripVertical, Search, X, Tag, Download, Loader2, ChevronLeft, ChevronRight, Calendar, MessageSquare, Paperclip, Clock, Trash2, Play, Pause, Repeat, Check, ListChecks, GripHorizontal } from 'lucide-react'
+import { Plus, GripVertical, Search, X, Tag, Download, Loader2, ChevronLeft, ChevronRight, Calendar, MessageSquare, Paperclip, Clock, Trash2, Play, Pause, Repeat, Check, ListChecks, GripHorizontal, Bot } from 'lucide-react'
 import { Task, TaskComment, TaskAttachment, SubTask, Label } from '@/types'
 import { useToast } from '@/components/Toast'
 import { useSSE } from '@/lib/useSSE'
@@ -28,6 +28,7 @@ const LANES: { id: string; label: string; color: string; icon: string }[] = [
   { id: 'inbox', label: 'Inbox', color: 'border-slate-400', icon: '📥' },
   { id: 'planned', label: 'Planned', color: 'border-blue-500', icon: '📋' },
   { id: 'in_progress', label: 'In Progress', color: 'border-yellow-500', icon: '🔄' },
+  { id: 'agent_running', label: 'Agent Running', color: 'border-purple-500', icon: '🤖' },
   { id: 'blocked', label: 'Blocked', color: 'border-red-500', icon: '🚫' },
   { id: 'done', label: 'Done', color: 'border-green-500', icon: '✅' },
 ]
@@ -69,7 +70,7 @@ function TaskCardSkeleton() {
   )
 }
 
-function TaskCard({ task, onEdit, isSelected }: { task: Task; onEdit: (task: Task) => void; isSelected?: boolean }) {
+function TaskCard({ task, onEdit, onRunAsAgent, isSelected }: { task: Task; onEdit: (task: Task) => void; onRunAsAgent?: (task: Task) => void; isSelected?: boolean }) {
   const {
     attributes,
     listeners,
@@ -177,6 +178,25 @@ function TaskCard({ task, onEdit, isSelected }: { task: Task; onEdit: (task: Tas
                 <Repeat size={10} /> {task.recurrence}
               </span>
             )}
+            {/* Agent Running indicator */}
+            {task.status === 'agent_running' && (
+              <span className="text-xs px-2 py-0.5 rounded bg-purple-100 text-purple-700 flex items-center gap-1">
+                <Bot size={10} /> Agent Running
+              </span>
+            )}
+            {/* Run as Agent button - only show for non-agent_running tasks */}
+            {task.status !== 'agent_running' && onRunAsAgent && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onRunAsAgent(task)
+                }}
+                className="text-xs px-2 py-0.5 rounded bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-1 transition-colors"
+                title="Run this task as an agent"
+              >
+                <Bot size={10} /> Run as Agent
+              </button>
+            )}
           </div>
           {task.dueDate && (
             <div className={`flex items-center gap-1 mt-2 text-xs ${isOverdue ? 'text-red-600 font-medium' : 'text-slate-500'}`}>
@@ -195,6 +215,7 @@ function Lane({
   tasks,
   onAddTask,
   onEditTask,
+  onRunAsAgent,
   isActive,
   onDragOver,
 }: {
@@ -202,6 +223,7 @@ function Lane({
   tasks: Task[]
   onAddTask: (status: string) => void
   onEditTask: (task: Task) => void
+  onRunAsAgent?: (task: Task) => void
   isActive: boolean
   onDragOver: (laneId: string) => void
 }) {
@@ -225,7 +247,7 @@ function Lane({
       >
         <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
           {tasks.map((task) => (
-            <TaskCard key={task.id} task={task} onEdit={onEditTask} />
+            <TaskCard key={task.id} task={task} onEdit={onEditTask} onRunAsAgent={onRunAsAgent} />
           ))}
         </SortableContext>
         <button
@@ -809,6 +831,55 @@ export default function KanbanBoard() {
     }
   }
 
+  // Handle Run as Agent - spawn a subagent to work on this task
+  const handleRunAsAgent = async (task: Task) => {
+    try {
+      // First, update task status to agent_running
+      const updateRes = await fetch(`/api/tasks/${task.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'agent_running' }),
+      })
+
+      if (!updateRes.ok) {
+        showToast('Failed to update task status', 'error')
+        return
+      }
+
+      // Then spawn a subagent via OpenClaw
+      const agentTask = `Complete task: ${task.title}. ${task.description || 'No description provided.'}`
+      
+      const spawnRes = await fetch('/api/openclaw/agents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          taskId: task.id,
+          task: agentTask,
+          runtime: 'subagent',
+          agentType: 'coder'
+        }),
+      })
+
+      if (spawnRes.ok) {
+        const result = await spawnRes.json()
+        showToast(`Agent spawned: ${result.message}`, 'success')
+        // Refresh tasks to show the updated status
+        fetchTasks()
+      } else {
+        showToast('Failed to spawn agent', 'error')
+        // Revert task status if agent spawn failed
+        await fetch(`/api/tasks/${task.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'inbox' }),
+        })
+      }
+    } catch (e) {
+      console.error('Failed to run as agent', e)
+      showToast('Failed to run as agent', 'error')
+    }
+  }
+
   // Handle adding a subtask
   const handleAddSubtask = async () => {
     if (!editingTask || !newSubtask.trim()) return
@@ -1114,6 +1185,7 @@ export default function KanbanBoard() {
                     setShowAddModal(true)
                   }}
                   onEditTask={(task) => openTaskModal(task)}
+                  onRunAsAgent={(task) => handleRunAsAgent(task)}
                   isActive={index === selectedLane}
                   onDragOver={() => {}}
                 />

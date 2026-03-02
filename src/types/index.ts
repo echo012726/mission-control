@@ -2,7 +2,7 @@ export interface Task {
   id: string
   title: string
   description?: string
-  status: string // 'inbox' | 'planned' | 'in_progress' | 'blocked' | 'done'
+  status: string // 'inbox' | 'planned' | 'in_progress' | 'blocked' | 'done' | 'agent_running'
   priority: string // 'low' | 'medium' | 'high'
   tags: string // JSON array of tags
   labels: string // JSON array of label IDs
