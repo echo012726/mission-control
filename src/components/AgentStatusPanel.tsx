@@ -160,8 +160,19 @@ export default function AgentStatusPanel({ onAgentClick }: AgentStatusPanelProps
           </div>
         ) : agents.length === 0 ? (
           <div className="empty-state py-6">
-            <Bot size={40} className="empty-state-icon text-gray-600" />
-            <p className="text-gray-400 text-sm">No agents found</p>
+            <div className="relative">
+              <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-gray-600">
+                <rect x="8" y="6" width="32" height="36" rx="6" stroke="currentColor" strokeWidth="2" fill="none"/>
+                <circle cx="24" cy="18" r="5" stroke="currentColor" strokeWidth="2"/>
+                <path d="M16 30H32" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M16 36H26" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <circle cx="18" cy="10" r="1.5" fill="currentColor"/>
+                <circle cx="24" cy="10" r="1.5" fill="currentColor"/>
+                <circle cx="30" cy="10" r="1.5" fill="currentColor"/>
+              </svg>
+              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500/30 rounded-full animate-pulse"/>
+            </div>
+            <p className="text-gray-400 text-sm mt-3">No agents found</p>
             <p className="text-gray-600 text-xs mt-1">Agents will appear here when connected</p>
           </div>
         ) : (

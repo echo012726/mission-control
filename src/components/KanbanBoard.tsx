@@ -216,7 +216,7 @@ function Lane({
       </div>
       <div
         ref={setNodeRef}
-        className={`bg-gray-900/40 backdrop-blur-sm p-2 rounded-b-lg min-h-[150px] sm:min-h-[200px] transition-all border border-t-0 border-white/5 ${isOver ? 'bg-gray-800/60 border-blue-500/30' : ''}`}
+        className={`bg-gray-900/40 backdrop-blur-sm p-2 rounded-b-lg min-h-[150px] sm:min-h-[200px] transition-all border border-t-0 border-white/5 ${isOver ? 'lane-drop-active' : ''}`}
         onDragOver={() => onDragOver(lane.id)}
       >
         <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
@@ -1116,8 +1116,18 @@ export default function KanbanBoard() {
               ))}
               <DragOverlay>
                 {activeTask && (
-                  <div className="bg-gray-800 rounded p-3 shadow-xl w-[250px] sm:w-[280px] scale-105">
-                    <p className="text-white text-sm">{activeTask.title}</p>
+                  <div className="drag-overlay-card rounded-lg p-3 w-[250px] sm:w-[280px]">
+                    <div className="flex items-start gap-2">
+                      <div className="mt-1 text-gray-500">
+                        <GripVertical size={14} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-sm font-medium truncate">{activeTask.title}</p>
+                        {activeTask.description && (
+                          <p className="text-gray-400 text-xs mt-1 line-clamp-2">{activeTask.description}</p>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )}
               </DragOverlay>

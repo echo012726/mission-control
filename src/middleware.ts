@@ -9,7 +9,8 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/api/auth/login') ||
     pathname === '/login' ||
     pathname.startsWith('/_next') ||
-    pathname === '/favicon.ico'
+    pathname === '/favicon.ico' ||
+    pathname === '/api/events' // SSE endpoint - handled client-side
   ) {
     return NextResponse.next()
   }

@@ -167,8 +167,19 @@ export default function ActivityFeed() {
           </div>
         ) : activities.length === 0 ? (
           <div className="empty-state py-8">
-            <Activity size={40} className="empty-state-icon text-gray-600" />
-            <p className="text-gray-400 text-sm">No activity yet</p>
+            <div className="relative">
+              <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-gray-600">
+                <rect x="8" y="12" width="48" height="40" rx="4" stroke="currentColor" strokeWidth="2" fill="none"/>
+                <path d="M8 20H56" stroke="currentColor" strokeWidth="2"/>
+                <circle cx="16" cy="16" r="2" fill="currentColor"/>
+                <circle cx="24" cy="16" r="2" fill="currentColor"/>
+                <circle cx="32" cy="16" r="2" fill="currentColor"/>
+                <path d="M20 32L28 40L20 48" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M32 48H44" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-purple-500/30 rounded-full animate-pulse"/>
+            </div>
+            <p className="text-gray-400 text-sm mt-4">No activity yet</p>
             <p className="text-gray-600 text-xs mt-1">Actions will appear here in real-time</p>
           </div>
         ) : (
