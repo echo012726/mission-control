@@ -53,15 +53,15 @@ function formatTime(seconds: number): string {
 
 function TaskCardSkeleton() {
   return (
-    <div className="bg-gray-800/50 rounded-lg p-3 mb-2 animate-pulse">
+    <div className="bg-gray-800/40 rounded-lg p-3 mb-2 border border-white/5">
       <div className="flex items-start gap-2">
-        <div className="mt-1 w-4 h-4 rounded bg-gray-700" />
+        <div className="mt-1 w-4 h-4 rounded bg-gray-700/50" />
         <div className="flex-1 space-y-2">
-          <div className="h-4 bg-gray-700 rounded w-3/4" />
-          <div className="h-3 bg-gray-700/50 rounded w-1/2" />
+          <div className="h-4 bg-gray-700/50 rounded w-3/4 skeleton" />
+          <div className="h-3 bg-gray-700/30 rounded w-1/2 skeleton" />
           <div className="flex gap-2 mt-2">
-            <div className="h-5 bg-gray-700/50 rounded w-12" />
-            <div className="h-5 bg-gray-700/50 rounded w-16" />
+            <div className="h-5 bg-gray-700/30 rounded w-12 skeleton" />
+            <div className="h-5 bg-gray-700/30 rounded w-16 skeleton" />
           </div>
         </div>
       </div>
@@ -117,8 +117,8 @@ function TaskCard({ task, onEdit, isSelected }: { task: Task; onEdit: (task: Tas
     <div
       ref={setNodeRef}
       style={style}
-      className={`bg-gray-800 rounded p-3 mb-2 cursor-pointer hover:bg-gray-750 touch-manipulation transition-all duration-200 ${
-        isDragging ? 'opacity-50 z-50 scale-105 shadow-xl' : ''
+      className={`bg-gray-800/40 backdrop-blur-sm rounded-lg p-3 mb-2 cursor-pointer hover:bg-gray-700/50 touch-manipulation transition-all duration-200 border border-transparent hover:border-white/5 task-card-glow ${
+        isDragging ? 'opacity-50 z-50 scale-105 shadow-2xl ring-2 ring-blue-500/50' : ''
       } ${isSelected ? 'ring-2 ring-blue-500' : ''}`}
       onClick={() => onEdit(task)}
     >
@@ -126,7 +126,7 @@ function TaskCard({ task, onEdit, isSelected }: { task: Task; onEdit: (task: Tas
         <button
           {...attributes}
           {...listeners}
-          className="mt-1 text-gray-500 hover:text-gray-400 cursor-grab active:cursor-grabbing transition-colors"
+          className="mt-1 text-gray-500 hover:text-gray-300 cursor-grab active:cursor-grabbing transition-colors hover:bg-white/5 p-1 rounded"
         >
           <GripVertical size={14} />
         </button>
@@ -151,7 +151,7 @@ function TaskCard({ task, onEdit, isSelected }: { task: Task; onEdit: (task: Tas
             ))}
             {/* Timer indicator */}
             {isTimerRunning && (
-              <span className="text-xs px-2 py-0.5 rounded bg-green-600/50 text-green-200 flex items-center gap-1">
+              <span className="text-xs px-2 py-0.5 rounded bg-green-600/50 text-green-200 flex items-center gap-1 animate-pulse">
                 <Play size={10} /> Running
               </span>
             )}
@@ -205,15 +205,18 @@ function Lane({
 
   return (
     <div className="flex-shrink-0 w-[85vw] sm:w-[280px] md:min-w-[250px] md:max-w-[300px]">
-      <div className={`border-t-2 ${lane.color} px-3 py-2 bg-gray-900 rounded-t transition-colors ${isActive ? 'bg-gray-800' : ''}`}>
+      <div className={`border-t-2 ${lane.color} px-3 py-2.5 bg-gray-900/80 backdrop-blur-sm rounded-t-lg transition-all ${isActive ? 'bg-gray-800' : ''}`}>
         <div className="flex items-center justify-between">
-          <h3 className="font-medium text-white text-sm sm:text-base">{lane.label}</h3>
-          <span className="text-gray-400 text-sm">{tasks.length}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-lg">{lane.icon}</span>
+            <h3 className="font-medium text-white text-sm sm:text-base">{lane.label}</h3>
+          </div>
+          <span className="text-gray-400 text-sm bg-gray-800/50 px-2 py-0.5 rounded-full">{tasks.length}</span>
         </div>
       </div>
       <div
         ref={setNodeRef}
-        className={`bg-gray-900/50 p-2 rounded-b min-h-[150px] sm:min-h-[200px] transition-colors ${isOver ? 'bg-gray-800/70' : ''}`}
+        className={`bg-gray-900/40 backdrop-blur-sm p-2 rounded-b-lg min-h-[150px] sm:min-h-[200px] transition-all border border-t-0 border-white/5 ${isOver ? 'bg-gray-800/60 border-blue-500/30' : ''}`}
         onDragOver={() => onDragOver(lane.id)}
       >
         <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
@@ -223,7 +226,7 @@ function Lane({
         </SortableContext>
         <button
           onClick={() => onAddTask(lane.id)}
-          className="w-full flex items-center justify-center gap-1 text-gray-500 hover:text-gray-400 py-2 text-sm transition-colors"
+          className="w-full flex items-center justify-center gap-1 text-gray-500 hover:text-gray-300 hover:bg-white/5 py-2.5 text-sm rounded-lg transition-all border border-dashed border-white/10 hover:border-white/20"
         >
           <Plus size={14} /> Add task
         </button>
@@ -984,7 +987,7 @@ export default function KanbanBoard() {
   return (
     <div>
       {/* Search and Filter Bar */}
-      <div className="glass-card rounded-xl p-3 mb-4">
+      <div className="glass-card rounded-xl p-3 mb-4 border border-white/10">
         <div className="flex flex-col sm:flex-row gap-2">
           <div className="relative flex-1">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
@@ -994,13 +997,13 @@ export default function KanbanBoard() {
               placeholder="Search tasks... (press /)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-gray-900/50 border border-white/10 rounded-lg pl-9 pr-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
+              className="w-full bg-gray-900/60 backdrop-blur-sm border border-white/10 rounded-lg pl-9 pr-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/30 transition-all placeholder:text-gray-600"
             />
-          </div>
+         :text-gray-600 </div>
           <select
             value={filterPriority}
             onChange={(e) => setFilterPriority(e.target.value)}
-            className="bg-gray-900/50 border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
+            className="bg-gray-900/60 backdrop-blur-sm border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/30 transition-all"
           >
             <option value="">All Priorities</option>
             {PRIORITIES.map(p => (
@@ -1012,7 +1015,7 @@ export default function KanbanBoard() {
             placeholder="Filter by tag..."
             value={filterTags}
             onChange={(e) => setFilterTags(e.target.value)}
-            className="bg-gray-900/50 border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm w-full sm:w-32 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
+            className="bg-gray-900/60 backdrop-blur-sm border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm w-full sm:w-32 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/30 transition-all placeholder:text-gray-600"
           />
           {hasFilters && (
             <button

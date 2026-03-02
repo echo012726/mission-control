@@ -10,7 +10,8 @@ import WebhooksPanel from '@/components/WebhooksPanel'
 import ApprovalsPanel from '@/components/ApprovalsPanel'
 import CronJobMonitor from '@/components/CronJobMonitor'
 import DashboardWidgets from '@/components/DashboardWidgets'
-import { LayoutDashboard, ListTodo, Activity, Webhook, Shield, Bot, Clock, Layout } from 'lucide-react'
+import ConnectionStatus from '@/components/ConnectionStatus'
+import { LayoutDashboard, ListTodo, Activity, Webhook, Shield, Bot, Clock, Layout, X } from 'lucide-react'
 
 type Tab = 'tasks' | 'dashboard' | 'metrics' | 'webhooks' | 'approvals' | 'cron'
 
@@ -28,20 +29,23 @@ export default function Home() {
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null)
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      <header className="border-b border-white/10 px-4 sm:px-6 py-4 glass-panel">
+    <div className="min-h-screen bg-gray-950 text-white bg-pattern">
+      <header className="sticky top-0 z-40 border-b border-white/10 px-4 sm:px-6 py-4 glass-panel">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/30">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/30 shadow-lg shadow-blue-500/10">
               <Bot className="text-blue-400" size={24} />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+              <h1 className="text-xl sm:text-2xl font-bold gradient-text">
                 Mission Control
               </h1>
               <p className="text-xs text-gray-500 hidden sm:block">Real-time agent orchestration</p>
             </div>
           </div>
+          
+          {/* Connection Status */}
+          <ConnectionStatus />
           
           {/* Mobile: Horizontal scroll tabs */}
           <nav className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible">
@@ -50,7 +54,7 @@ export default function Home() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm whitespace-nowrap transition-all ${
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm whitespace-nowrap transition-all duration-200 ${
                     activeTab === tab.id
                       ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/25'
                       : 'text-gray-400 hover:text-white hover:bg-white/5'

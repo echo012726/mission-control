@@ -24,10 +24,10 @@ const typeConfig: Record<string, { icon: typeof Activity; color: string; bg: str
 function ActivitySkeleton() {
   return (
     <div className="flex gap-3 p-2">
-      <div className="skeleton w-8 h-8 rounded-lg" />
+      <div className="w-8 h-8 bg-gray-700/30 rounded-lg skeleton" />
       <div className="flex-1 space-y-2">
-        <div className="skeleton skeleton-text w-3/4" />
-        <div className="skeleton skeleton-text w-1/4" />
+        <div className="h-4 bg-gray-700/30 rounded w-3/4 skeleton" />
+        <div className="h-3 bg-gray-700/20 rounded w-1/4 skeleton" />
       </div>
     </div>
   )

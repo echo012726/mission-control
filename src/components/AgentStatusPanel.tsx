@@ -28,12 +28,12 @@ function AgentCardSkeleton() {
   return (
     <div className="flex items-start justify-between p-3 rounded-lg">
       <div className="flex-1 space-y-2">
-        <div className="skeleton skeleton-text w-32" />
-        <div className="skeleton skeleton-text w-20" />
+        <div className="h-4 bg-gray-700/50 rounded w-32 skeleton" />
+        <div className="h-3 bg-gray-700/30 rounded w-20 skeleton" />
       </div>
       <div className="flex flex-col items-end gap-2">
-        <div className="skeleton skeleton-text w-16" />
-        <div className="skeleton w-8 h-8 rounded-lg" />
+        <div className="h-3 bg-gray-700/30 rounded w-16 skeleton" />
+        <div className="w-8 h-8 bg-gray-700/30 rounded-lg skeleton" />
       </div>
     </div>
   )
