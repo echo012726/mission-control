@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mission Control - Task Relationships</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #1a1a2e;
+      --bg-secondary: #16213e;
+      --bg-tertiary: #0f0f1a;
+      --text-primary: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --accent-start: #667eea;
+      --accent-end: #764ba2;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --info: #3b82f6;
+      --purple: #a855f7;
+      --border: #3d3d5c;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+    }
+    .header {
+      background: var(--bg-secondary);
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-left { display: flex; align-items: center; gap: 16px; }
+    .back-btn {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .back-btn:hover { background: var(--border); }
+    .header h1 {
+      font-size: 20px;
+      font-weight: 600;
+      background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .header-actions { display: flex; gap: 12px; }
+    .btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
+      color: white;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-secondary {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { background: var(--border); }
+    .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+    
+    /* Stats */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 16px;
+      border: 1px solid var(--border);
+    }
+    .stat-card h3 { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; }
+    .stat-card .value { font-size: 24px; font-weight: 700; }
+    .stat-card .value.blocks { color: var(--danger); }
+    .stat-card .value.blocked { color: var(--warning); }
+    .stat-card .value.relates { color: var(--info); }
+    
+    /* Filters */
+    .filters {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .filter-btn {
+      padding: 8px 16px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .filter-btn.active {
+      background: var(--accent-start);
+      color: white;
+      border-color: var(--accent-start);
+    }
+    
+    /* Relationship Cards */
+    .relationships-grid {
+      display: grid;
+      gap: 16px;
+    }
+    .relationship-card {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .task-box {
+      flex: 1;
+      padding: 12px;
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .task-box:hover { background: var(--border); }
+    .task-box .title { font-weight: 500; margin-bottom: 4px; }
+    .task-box .meta { font-size: 12px; color: var(--text-secondary); }
+    .task-box.status-done { opacity: 0.6; }
+    
+    .relationship-type {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+    }
+    .relationship-type .icon { font-size: 24px; }
+    .relationship-type .label { font-size: 12px; color: var(--text-secondary); }
+    .relationship-type.blocks { border: 1px solid var(--danger); }
+    .relationship-type.blocks .icon { color: var(--danger); }
+    .relationship-type.blocked_by { border: 1px solid var(--warning); }
+    .relationship-type.blocked_by .icon { color: var(--warning); }
+    .relationship-type.relates_to { border: 1px solid var(--info); }
+    .relationship-type.relates_to .icon { color: var(--info); }
+    
+    .remove-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 18px;
+      padding: 8px;
+    }
+    .remove-btn:hover { color: var(--danger); }
+    
+    /* Add Relationship Form */
+    .add-form {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 24px;
+      border: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+    .add-form h2 { font-size: 16px; margin-bottom: 16px; }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr auto;
+      gap: 16px;
+      align-items: end;
+    }
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+    .form-group select, .form-group input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      font-size: 14px;
+    }
+    .form-group select:focus, .form-group input:focus {
+      outline: none;
+      border-color: var(--accent-start);
+    }
+    .task-select {
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      font-size: 14px;
+      min-width: 200px;
+    }
+    
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-secondary);
+    }
+    .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+    
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s;
+    }
+    .modal-overlay.active { opacity: 1; visibility: visible; }
+    .modal {
+      background: var(--bg-secondary);
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 500px;
+      width: 90%;
+      border: 1px solid var(--border);
+      transform: scale(0.9);
+      transition: transform 0.2s;
+    }
+    .modal-overlay.active .modal { transform: scale(1); }
+    .modal h2 { margin-bottom: 16px; }
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+    
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      padding: 12px 20px;
+      border-radius: 8px;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { border-color: var(--success); }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <button class="back-btn" onclick="window.location.href='/'">← Back to Tasks</button>
+      <h1>🔗 Task Relationships</h1>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-secondary" onclick="exportRelationships()">Export JSON</button>
+    </div>
+  </div>
+  
+  <div class="container">
+    <!-- Stats -->
+    <div class="stats-bar">
+      <div class="stat-card">
+        <h3>Total Relationships</h3>
+        <div class="value" id="totalCount">0</div>
+      </div>
+      <div class="stat-card">
+        <h3>🔴 Blocks</h3>
+        <div class="value blocks" id="blocksCount">0</div>
+      </div>
+      <div class="stat-card">
+        <h3>🟡 Blocked By</h3>
+        <div class="value blocked" id="blockedCount">0</div>
+      </div>
+      <div class="stat-card">
+        <h3>🔵 Relates To</h3>
+        <div class="value relates" id="relatesCount">0</div>
+      </div>
+    </div>
+    
+    <!-- Add Form -->
+    <div class="add-form">
+      <h2>➕ Add Relationship</h2>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Source Task</label>
+          <select id="sourceTask" class="task-select">
+            <option value="">Select task...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Relationship</label>
+          <select id="relationshipType">
+            <option value="blocks">🔴 Blocks</option>
+            <option value="blocked_by">🟡 Blocked By</option>
+            <option value="relates_to">🔵 Relates To</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Target Task</label>
+          <select id="targetTask" class="task-select">
+            <option value="">Select task...</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="addRelationship()">Add</button>
+      </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="filters">
+      <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">All</button>
+      <button class="filter-btn" data-filter="blocks" onclick="setFilter('blocks')">🔴 Blocks</button>
+      <button class="filter-btn" data-filter="blocked_by" onclick="setFilter('blocked_by')">🟡 Blocked By</button>
+      <button class="filter-btn" data-filter="relates_to" onclick="setFilter('relates_to')">🔵 Relates To</button>
+    </div>
+    
+    <!-- Relationships List -->
+    <div class="relationships-grid" id="relationshipsList"></div>
+  </div>
+  
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const STORAGE_KEY = 'taskRelationships';
+    let allTasks = [];
+    let relationships = [];
+    let currentFilter = 'all';
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      loadData();
+      render();
+    });
+    
+    function loadData() {
+      // Load relationships
+      const stored = localStorage.getItem(STORAGE_KEY);
+      relationships = stored ? JSON.parse(stored) : [];
+      
+      // Load tasks from various sources
+      allTasks = [];
+      
+      // Try localStorage tasks
+      const tasksData = localStorage.getItem('tasks');
+      if (tasksData) {
+        try {
+          const parsed = JSON.parse(tasksData);
+          if (Array.isArray(parsed)) {
+            allTasks = parsed;
+          } else if (parsed.tasks) {
+            allTasks = parsed.tasks;
+          }
+        } catch (e) {}
+      }
+      
+      // Also check mission-control-tasks
+      const mcTasks = localStorage.getItem('mission-control-tasks');
+      if (mcTasks) {
+        try {
+          const parsed = JSON.parse(mcTasks);
+          if (Array.isArray(parsed)) {
+            allTasks = [...allTasks, ...parsed];
+          }
+        } catch (e) {}
+      }
+      
+      // Deduplicate by ID
+      const seen = new Set();
+      allTasks = allTasks.filter(t => {
+        if (seen.has(t.id)) return false;
+        seen.add(t.id);
+        return true;
+      });
+    }
+    
+    function saveRelationships() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(relationships));
+    }
+    
+    function getTaskById(id) {
+      return allTasks.find(t => t.id === id);
+    }
+    
+    function getTaskDisplay(task) {
+      if (!task) return { title: 'Unknown Task', status: 'unknown' };
+      return {
+        title: task.title || task.name || 'Untitled',
+        status: task.status || 'inbox',
+        priority: task.priority || 'medium'
+      };
+    }
+    
+    function getStatusLabel(status) {
+      const labels = {
+        'done': '✅ Done',
+        'inProgress': '🔄 In Progress',
+        'blocked': '🚫 Blocked',
+        'planned': '📋 Planned',
+        'inbox': '📥 Inbox'
+      };
+      return labels[status] || status;
+    }
+    
+    function getTypeIcon(type) {
+      const icons = {
+        'blocks': '⛔',
+        'blocked_by': '🚫',
+        'relates_to': '↔️'
+      };
+      return icons[type] || '🔗';
+    }
+    
+    function getTypeLabel(type) {
+      const labels = {
+        'blocks': 'blocks',
+        'blocked_by': 'blocked by',
+        'relates_to': 'relates to'
+      };
+      return labels[type] || type;
+    }
+    
+    function render() {
+      populateTaskSelects();
+      updateStats();
+      renderRelationships();
+    }
+    
+    function populateTaskSelects() {
+      const sourceSelect = document.getElementById('sourceTask');
+      const targetSelect = document.getElementById('targetTask');
+      
+      let options = '<option value="">Select task...</option>';
+      allTasks.forEach(task => {
+        const display = getTaskDisplay(task);
+        options += `<option value="${task.id}">${display.title} (${getStatusLabel(display.status)})</option>`;
+      });
+      
+      sourceSelect.innerHTML = options;
+      targetSelect.innerHTML = options;
+    }
+    
+    function updateStats() {
+      const blocks = relationships.filter(r => r.type === 'blocks').length;
+      const blocked = relationships.filter(r => r.type === 'blocked_by').length;
+      const relates = relationships.filter(r => r.type === 'relates_to').length;
+      
+      document.getElementById('totalCount').textContent = relationships.length;
+      document.getElementById('blocksCount').textContent = blocks;
+      document.getElementById('blockedCount').textContent = blocked;
+      document.getElementById('relatesCount').textContent = relates;
+    }
+    
+    function setFilter(filter) {
+      currentFilter = filter;
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.filter === filter);
+      });
+      renderRelationships();
+    }
+    
+    function renderRelationships() {
+      const container = document.getElementById('relationshipsList');
+      
+      let filtered = relationships;
+      if (currentFilter !== 'all') {
+        filtered = relationships.filter(r => r.type === currentFilter);
+      }
+      
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="icon">🔗</div>
+            <h3>No relationships yet</h3>
+            <p>Add relationships between tasks using the form above.</p>
+          </div>
+        `;
+        return;
+      }
+      
+      container.innerHTML = filtered.map(rel => {
+        const sourceTask = getTaskById(rel.sourceId);
+        const targetTask = getTaskById(rel.targetId);
+        const sourceDisplay = getTaskDisplay(sourceTask);
+        const targetDisplay = getTaskDisplay(targetTask);
+        
+        return `
+          <div class="relationship-card">
+            <div class="task-box ${sourceDisplay.status === 'done' ? 'status-done' : ''}" onclick="viewTask('${rel.sourceId}')">
+              <div class="title">${sourceDisplay.title}</div>
+              <div class="meta">${getStatusLabel(sourceDisplay.status)}</div>
+            </div>
+            <div class="relationship-type ${rel.type}">
+              <span class="icon">${getTypeIcon(rel.type)}</span>
+              <span class="label">${getTypeLabel(rel.type)}</span>
+            </div>
+            <div class="task-box ${targetDisplay.status === 'done' ? 'status-done' : ''}" onclick="viewTask('${rel.targetId}')">
+              <div class="title">${targetDisplay.title}</div>
+              <div class="meta">${getStatusLabel(targetDisplay.status)}</div>
+            </div>
+            <button class="remove-btn" onclick="removeRelationship('${rel.id}')" title="Remove">✕</button>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    function addRelationship() {
+      const sourceId = document.getElementById('sourceTask').value;
+      const type = document.getElementById('relationshipType').value;
+      const targetId = document.getElementById('targetTask').value;
+      
+      if (!sourceId || !targetId) {
+        showToast('Please select both tasks', 'error');
+        return;
+      }
+      
+      if (sourceId === targetId) {
+        showToast('Cannot create relationship to same task', 'error');
+        return;
+      }
+      
+      // Check for duplicate
+      const exists = relationships.some(r => 
+        r.sourceId === sourceId && r.targetId === targetId && r.type === type
+      );
+      if (exists) {
+        showToast('Relationship already exists', 'error');
+        return;
+      }
+      
+      relationships.push({
+        id: Date.now().toString(),
+        sourceId,
+        type,
+        targetId,
+        createdAt: new Date().toISOString()
+      });
+      
+      saveRelationships();
+      render();
+      showToast('Relationship added!', 'success');
+      
+      // Reset form
+      document.getElementById('sourceTask').value = '';
+      document.getElementById('targetTask').value = '';
+    }
+    
+    function removeRelationship(id) {
+      relationships = relationships.filter(r => r.id !== id);
+      saveRelationships();
+      render();
+      showToast('Relationship removed', 'success');
+    }
+    
+    function viewTask(taskId) {
+      // Store for main app to pick up
+      localStorage.setItem('viewTaskId', taskId);
+      window.location.href = '/';
+    }
+    
+    function exportRelationships() {
+      const data = {
+        relationships,
+        exportedAt: new Date().toISOString()
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'task-relationships.json';
+      a.click();
+      showToast('Exported!', 'success');
+    }
+    
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = 'toast ' + type;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+  </script>
+</body>
+</html>

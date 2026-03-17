@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mission Control - Custom Dashboards</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #1a1a2e;
+      --bg-secondary: #16213e;
+      --bg-tertiary: #0f0f1a;
+      --text-primary: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --accent-start: #667eea;
+      --accent-end: #764ba2;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --grid-line: #2d2d44;
+      --border: #3d3d5c;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    .header {
+      background: var(--bg-secondary);
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header h1 {
+      font-size: 20px;
+      font-weight: 600;
+      background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
+      color: white;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--border);
+    }
+
+    .tabs-container {
+      background: var(--bg-secondary);
+      padding: 12px 24px 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      gap: 4px;
+      overflow-x: auto;
+    }
+
+    .tab {
+      padding: 10px 20px;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .tab:hover {
+      color: var(--text-primary);
+    }
+
+    .tab.active {
+      color: var(--text-primary);
+      border-bottom-color: var(--accent-start);
+    }
+
+    .tab-add {
+      padding: 10px 16px;
+      background: transparent;
+      border: 1px dashed var(--border);
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 14px;
+      border-radius: 8px 8px 0 0;
+    }
+
+    .tab-add:hover {
+      border-color: var(--accent-start);
+      color: var(--accent-start);
+    }
+
+    .main-content {
+      padding: 24px;
+      height: calc(100vh - 130px);
+      overflow-y: auto;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 16px;
+      min-height: 100%;
+    }
+
+    .widget {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 16px;
+      position: relative;
+      transition: all 0.2s;
+    }
+
+    .widget:hover {
+      border-color: var(--accent-start);
+      box-shadow: 0 4px 20px rgba(102, 126, 234, 0.1);
+    }
+
+    .widget-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .widget-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .widget-actions {
+      display: flex;
+      gap: 8px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .widget:hover .widget-actions {
+      opacity: 1;
+    }
+
+    .widget-btn {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      border: none;
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+    }
+
+    .widget-btn:hover {
+      background: var(--border);
+      color: var(--text-primary);
+    }
+
+    .widget-btn.drag {
+      cursor: grab;
+    }
+
+    /* Widget Sizes */
+    .widget-small { grid-column: span 3; grid-row: span 1; }
+    .widget-medium { grid-column: span 4; grid-row: span 1; }
+    .widget-large { grid-column: span 6; grid-row: span 1; }
+    .widget-full { grid-column: span 12; grid-row: span 1; }
+
+    /* Widget Content Styles */
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .progress-bar {
+      height: 8px;
+      background: var(--bg-tertiary);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 12px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-start), var(--accent-end));
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+
+    .activity-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .activity-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px;
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+      font-size: 13px;
+    }
+
+    .activity-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+    }
+
+    .activity-icon.created { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+    .activity-icon.completed { background: rgba(102, 126, 234, 0.2); color: var(--accent-start); }
+    .activity-icon.deleted { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
+
+    .tag-cloud {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .tag {
+      padding: 4px 12px;
+      background: var(--bg-tertiary);
+      border-radius: 20px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .tag.count { background: rgba(102, 126, 234, 0.2); color: var(--accent-start); }
+
+    .calendar-mini {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      text-align: center;
+    }
+
+    .calendar-day {
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      background: var(--bg-tertiary);
+    }
+
+    .calendar-day.today {
+      background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
+      color: white;
+    }
+
+    .calendar-day.has-task {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--success);
+    }
+
+    .timer-display {
+      font-size: 48px;
+      font-weight: 700;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .timer-controls {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .timer-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      font-size: 18px;
+      transition: all 0.2s;
+    }
+
+    .timer-btn.start { background: var(--success); color: white; }
+    .timer-btn.stop { background: var(--danger); color: white; }
+    .timer-btn:hover { transform: scale(1.1); }
+
+    /* Add Widget Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal {
+      background: var(--bg-secondary);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      width: 90%;
+      max-width: 500px;
+      max-height: 80vh;
+      overflow: hidden;
+      transform: scale(0.9);
+      transition: transform 0.2s;
+    }
+
+    .modal-overlay.active .modal {
+      transform: scale(1);
+    }
+
+    .modal-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h2 {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: none;
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 18px;
+    }
+
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      max-height: 60vh;
+    }
+
+    .widget-options {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .widget-option {
+      padding: 16px;
+      background: var(--bg-tertiary);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .widget-option:hover {
+      border-color: var(--accent-start);
+    }
+
+    .widget-option.selected {
+      border-color: var(--accent-start);
+      background: rgba(102, 126, 234, 0.1);
+    }
+
+    .widget-option-icon {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    .widget-option-name {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    /* Empty State */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--text-secondary);
+      text-align: center;
+      padding: 40px;
+    }
+
+    .empty-state-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    .empty-state-text {
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+
+    .empty-state-hint {
+      font-size: 14px;
+      opacity: 0.7;
+    }
+
+    /* Quick Add Widget */
+    .quick-add-input {
+      width: 100%;
+      padding: 12px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 14px;
+    }
+
+    .quick-add-input:focus {
+      outline: none;
+      border-color: var(--accent-start);
+    }
+
+    /* Priority Breakdown */
+    .priority-bar {
+      display: flex;
+      height: 24px;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-top: 12px;
+    }
+
+    .priority-segment {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: white;
+    }
+
+    .priority-high { background: var(--danger); }
+    .priority-medium { background: var(--warning); }
+    .priority-low { background: var(--success); }
+    .priority-none { background: var(--text-secondary); }
+
+    /* Upcoming Deadlines */
+    .deadline-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .deadline-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+      font-size: 13px;
+    }
+
+    .deadline-item.overdue {
+      border-left: 3px solid var(--danger);
+    }
+
+    .deadline-item.soon {
+      border-left: 3px solid var(--warning);
+    }
+
+    .deadline-item.normal {
+      border-left: 3px solid var(--success);
+    }
+
+    .deadline-title {
+      font-weight: 500;
+    }
+
+    .deadline-date {
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+
+    /* Trash Zone */
+    .trash-zone {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 24px;
+      background: var(--danger);
+      color: white;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s;
+      z-index: 100;
+    }
+
+    .trash-zone.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-tertiary);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-secondary);
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>📊 Custom Dashboards</h1>
+    <div class="header-actions">
+      <button class="btn btn-secondary" onclick="loadTemplate('overview')">📋 Overview Template</button>
+      <button class="btn btn-secondary" onclick="loadTemplate('focus')">🎯 Focus Template</button>
+      <button class="btn btn-secondary" onclick="loadTemplate('review')">📊 Review Template</button>
+      <button class="btn btn-primary" onclick="openAddWidgetModal()">+ Add Widget</button>
+    </div>
+  </div>
+
+  <div class="tabs-container" id="tabsContainer">
+    <button class="tab active" data-tab="main" onclick="switchTab('main')">Main Dashboard</button>
+    <button class="tab-add" onclick="addNewTab()">+</button>
+  </div>
+
+  <div class="main-content">
+    <div class="dashboard-grid" id="dashboardGrid">
+      <!-- Widgets will be rendered here -->
+    </div>
+  </div>
+
+  <!-- Add Widget Modal -->
+  <div class="modal-overlay" id="addWidgetModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Add Widget</h2>
+        <button class="modal-close" onclick="closeAddWidgetModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="widget-options" id="widgetOptions">
+          <!-- Widget options will be rendered here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trash Zone -->
+  <div class="trash-zone" id="trashZone">🗑️ Drop here to remove widget</div>
+
+  <script>
+    // Widget Types Configuration
+    const WIDGET_TYPES = {
+      stats: { name: 'Task Stats', icon: '📊', size: 'widget-medium', render: renderStatsWidget },
+      activity: { name: 'Activity Feed', icon: '📝', size: 'widget-large', render: renderActivityWidget },
+      calendar: { name: 'Calendar', icon: '📅', size: 'widget-small', render: renderCalendarWidget },
+      karma: { name: 'Karma Points', icon: '⭐', size: 'widget-small', render: renderKarmaWidget },
+      timer: { name: 'Focus Timer', icon: '⏱️', size: 'widget-small', render: renderTimerWidget },
+      quickadd: { name: 'Quick Add', icon: '➕', size: 'widget-full', render: renderQuickAddWidget },
+      priorities: { name: 'Priority Breakdown', icon: '🎯', size: 'widget-medium', render: renderPrioritiesWidget },
+      tags: { name: 'Tags Overview', icon: '🏷️', size: 'widget-medium', render: renderTagsWidget },
+      deadlines: { name: 'Upcoming Deadlines', icon: '⏰', size: 'widget-large', render: renderDeadlinesWidget }
+    };
+
+    // State
+    let dashboards = {
+      main: {
+        name: 'Main Dashboard',
+        widgets: [
+          { id: 'w1', type: 'stats', x: 0, y: 0 },
+          { id: 'w2', type: 'activity', x: 4, y: 0 },
+          { id: 'w3', type: 'calendar', x: 8, y: 0 },
+          { id: 'w4', type: 'karma', x: 9, y: 0 }
+        ]
+      }
+    };
+    let currentTab = 'main';
+    let draggedWidget = null;
+    let timerInterval = null;
+    let timerSeconds = 0;
+    let timerRunning = false;
+
+    // Initialize
+    function init() {
+      loadDashboards();
+      renderTabs();
+      renderWidgets();
+      renderWidgetOptions();
+    }
+
+    // Load from localStorage
+    function loadDashboards() {
+      const saved = localStorage.getItem('missionControlDashboards');
+      if (saved) {
+        dashboards = JSON.parse(saved);
+      }
+    }
+
+    // Save to localStorage
+    function saveDashboards() {
+      localStorage.setItem('missionControlDashboards', JSON.stringify(dashboards));
+    }
+
+    // Render Tabs
+    function renderTabs() {
+      const container = document.getElementById('tabsContainer');
+      const tabs = Object.keys(dashboards);
+      let html = '';
+      tabs.forEach(tabId => {
+        const tab = dashboards[tabId];
+        html += `<button class="tab ${tabId === currentTab ? 'active' : ''}" data-tab="${tabId}" onclick="switchTab('${tabId}')">${tab.name}</button>`;
+      });
+      html += `<button class="tab-add" onclick="addNewTab()">+</button>`;
+      container.innerHTML = html;
+    }
+
+    // Switch Tab
+    function switchTab(tabId) {
+      currentTab = tabId;
+      renderTabs();
+      renderWidgets();
+    }
+
+    // Add New Tab
+    function addNewTab() {
+      const name = prompt('Enter dashboard name:');
+      if (name) {
+        const id = 'tab_' + Date.now();
+        dashboards[id] = { name, widgets: [] };
+        currentTab = id;
+        saveDashboards();
+        renderTabs();
+        renderWidgets();
+      }
+    }
+
+    // Render Widget Options
+    function renderWidgetOptions() {
+      const container = document.getElementById('widgetOptions');
+      let html = '';
+      Object.entries(WIDGET_TYPES).forEach(([type, config]) => {
+        html += `
+          <div class="widget-option" data-type="${type}" onclick="selectWidgetType('${type}')">
+            <div class="widget-option-icon">${config.icon}</div>
+            <div class="widget-option-name">${config.name}</div>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    // Select Widget Type
+    let selectedWidgetType = null;
+    function selectWidgetType(type) {
+      selectedWidgetType = type;
+      document.querySelectorAll('.widget-option').forEach(el => el.classList.remove('selected'));
+      document.querySelector(`.widget-option[data-type="${type}"]`).classList.add('selected');
+      
+      // Add widget after selection
+      setTimeout(() => {
+        addWidget(type);
+        closeAddWidgetModal();
+      }, 300);
+    }
+
+    // Add Widget
+    function addWidget(type) {
+      const widget = {
+        id: 'w_' + Date.now(),
+        type: type,
+        x: 0,
+        y: Object.keys(dashboards[currentTab].widgets).length
+      };
+      dashboards[currentTab].widgets.push(widget);
+      saveDashboards();
+      renderWidgets();
+    }
+
+    // Render Widgets
+    function renderWidgets() {
+      const grid = document.getElementById('dashboardGrid');
+      const widgets = dashboards[currentTab].widgets || [];
+      
+      if (widgets.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state" style="grid-column: span 12;">
+            <div class="empty-state-icon">📊</div>
+            <div class="empty-state-text">No widgets yet</div>
+            <div class="empty-state-hint">Click "+ Add Widget" to get started</div>
+          </div>
+        `;
+        return;
+      }
+
+      let html = '';
+      widgets.forEach(widget => {
+        const config = WIDGET_TYPES[widget.type];
+        if (!config) return;
+        
+        html += `
+          <div class="widget ${config.size}" data-id="${widget.id}" draggable="true" 
+               ondragstart="onDragStart(event)" ondragend="onDragEnd(event)">
+            <div class="widget-header">
+              <span class="widget-title">${config.icon} ${config.name}</span>
+              <div class="widget-actions">
+                <button class="widget-btn drag" title="Drag">⋮⋮</button>
+                <button class="widget-btn" title="Settings" onclick="configureWidget('${widget.id}')">⚙️</button>
+                <button class="widget-btn" title="Remove" onclick="removeWidget('${widget.id}')">×</button>
+              </div>
+            </div>
+            ${config.render()}
+          </div>
+        `;
+      });
+      grid.innerHTML = html;
+    }
+
+    // Drag and Drop
+    function onDragStart(e) {
+      draggedWidget = e.target.closest('.widget');
+      e.target.classList.add('dragging');
+      document.getElementById('trashZone').classList.add('active');
+    }
+
+    function onDragEnd(e) {
+      e.target.classList.remove('dragging');
+      document.getElementById('trashZone').classList.remove('active');
+      
+      // Find drop position
+      const widgets = document.querySelectorAll('.widget:not(.dragging)');
+      let targetIndex = widgets.length;
+      
+      widgets.forEach((widget, index) => {
+        const rect = widget.getBoundingClientRect();
+        if (e.clientX < rect.left + rect.width / 2) {
+          targetIndex = Math.min(targetIndex, index);
+        }
+      });
+      
+      // Reorder widgets
+      if (draggedWidget) {
+        const widgetId = draggedWidget.dataset.id;
+        const currentWidgets = dashboards[currentTab].widgets;
+        const currentIndex = currentWidgets.findIndex(w => w.id === widgetId);
+        
+        if (currentIndex !== -1 && currentIndex !== targetIndex) {
+          const [removed] = currentWidgets.splice(currentIndex, 1);
+          const insertIndex = targetIndex > currentIndex ? targetIndex - 1 : targetIndex;
+          currentWidgets.splice(insertIndex, 0, removed);
+          saveDashboards();
+          renderWidgets();
+        }
+      }
+      
+      draggedWidget = null;
+    }
+
+    // Remove Widget
+    function removeWidget(widgetId) {
+      const widgets = dashboards[currentTab].widgets;
+      const index = widgets.findIndex(w => w.id === widgetId);
+      if (index !== -1) {
+        widgets.splice(index, 1);
+        saveDashboards();
+        renderWidgets();
+      }
+    }
+
+    // Configure Widget
+    function configureWidget(widgetId) {
+      alert('Widget configuration coming soon!');
+    }
+
+    // Modal Functions
+    function openAddWidgetModal() {
+      selectedWidgetType = null;
+      document.querySelectorAll('.widget-option').forEach(el => el.classList.remove('selected'));
+      document.getElementById('addWidgetModal').classList.add('active');
+    }
+
+    function closeAddWidgetModal() {
+      document.getElementById('addWidgetModal').classList.remove('active');
+    }
+
+    // Load Templates
+    function loadTemplate(template) {
+      if (template === 'overview') {
+        dashboards[currentTab].widgets = [
+          { id: 'w1', type: 'stats', x: 0, y: 0 },
+          { id: 'w2', type: 'priorities', x: 4, y: 0 },
+          { id: 'w3', type: 'tags', x: 8, y: 0 },
+          { id: 'w4', type: 'activity', x: 0, y: 1 },
+          { id: 'w5', type: 'deadlines', x: 6, y: 1 }
+        ];
+      } else if (template === 'focus') {
+        dashboards[currentTab].widgets = [
+          { id: 'w1', type: 'timer', x: 0, y: 0 },
+          { id: 'w2', type: 'quickadd', x: 3, y: 0 },
+          { id: 'w3', type: 'stats', x: 0, y: 1 }
+        ];
+      } else if (template === 'review') {
+        dashboards[currentTab].widgets = [
+          { id: 'w1', type: 'stats', x: 0, y: 0 },
+          { id: 'w2', type: 'karma', x: 4, y: 0 },
+          { id: 'w3', type: 'calendar', x: 8, y: 0 },
+          { id: 'w4', type: 'activity', x: 0, y: 1 },
+          { id: 'w5', type: 'deadlines', x: 6, y: 1 }
+        ];
+      }
+      saveDashboards();
+      renderWidgets();
+    }
+
+    // Widget Render Functions
+    function renderStatsWidget() {
+      // Simulated data - in real app, fetch from API
+      const total = 47;
+      const completed = 23;
+      const pending = total - completed;
+      const rate = Math.round((completed / total) * 100);
+      
+      return `
+        <div class="stat-grid">
+          <div>
+            <div class="stat-value">${total}</div>
+            <div class="stat-label">Total Tasks</div>
+          </div>
+          <div>
+            <div class="stat-value">${completed}</div>
+            <div class="stat-label">Completed</div>
+          </div>
+          <div>
+            <div class="stat-value">${pending}</div>
+            <div class="stat-label">Pending</div>
+          </div>
+          <div>
+            <div class="stat-value">${rate}%</div>
+            <div class="stat-label">Completion Rate</div>
+          </div>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: ${rate}%"></div>
+        </div>
+      `;
+    }
+
+    function renderActivityWidget() {
+      const activities = [
+        { type: 'created', text: 'Created "Fix login bug"', time: '2 min ago' },
+        { type: 'completed', text: 'Completed "Design dashboard"', time: '15 min ago' },
+        { type: 'completed', text: 'Completed "API integration"', time: '1 hour ago' },
+        { type: 'created', text: 'Created "Write docs"', time: '2 hours ago' }
+      ];
+      
+      return `
+        <div class="activity-list">
+          ${activities.map(a => `
+            <div class="activity-item">
+              <div class="activity-icon ${a.type}">${a.type === 'created' ? '➕' : '✓'}</div>
+              <div>
+                <div>${a.text}</div>
+                <div style="color: var(--text-secondary); font-size: 11px;">${a.time}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function renderCalendarWidget() {
+      const today = new Date();
+      const days = [];
+      for (let i = 0; i < 28; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() + i);
+        const isToday = i === 0;
+        const hasTask = Math.random() > 0.7;
+        days.push(`
+          <div class="calendar-day ${isToday ? 'today' : ''} ${hasTask ? 'has-task' : ''}">
+            ${d.getDate()}
+          </div>
+        `);
+      }
+      
+      return `<div class="calendar-mini">${days.join('')}</div>`;
+    }
+
+    function renderKarmaWidget() {
+      return `
+        <div style="text-align: center;">
+          <div class="stat-value">2,450</div>
+          <div class="stat-label">Karma Points</div>
+          <div style="margin-top: 12px; color: var(--success); font-size: 14px;">↑ 150 this week</div>
+        </div>
+      `;
+    }
+
+    function renderTimerWidget() {
+      const mins = Math.floor(timerSeconds / 60);
+      const secs = timerSeconds % 60;
+      
+      return `
+        <div class="timer-display">${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}</div>
+        <div class="timer-controls">
+          <button class="timer-btn ${timerRunning ? 'stop' : 'start'}" onclick="toggleTimer()">
+            ${timerRunning ? '⏹' : '▶'}
+          </button>
+          <button class="timer-btn" onclick="resetTimer()">↺</button>
+        </div>
+      `;
+    }
+
+    function toggleTimer() {
+      if (timerRunning) {
+        clearInterval(timerInterval);
+        timerRunning = false;
+      } else {
+        timerInterval = setInterval(() => {
+          timerSeconds++;
+          renderWidgets();
+        }, 1000);
+        timerRunning = true;
+      }
+      renderWidgets();
+    }
+
+    function resetTimer() {
+      clearInterval(timerInterval);
+      timerRunning = false;
+      timerSeconds = 0;
+      renderWidgets();
+    }
+
+    function renderQuickAddWidget() {
+      return `
+        <input type="text" class="quick-add-input" placeholder="Quick add task... (Press Enter)" 
+               onkeypress="if(event.key==='Enter'){quickAddTask(this.value);this.value='';}">
+      `;
+    }
+
+    function quickAddTask(text) {
+      alert(`Task added: ${text}`);
+      // In real app, call API to add task
+    }
+
+    function renderPrioritiesWidget() {
+      return `
+        <div class="priority-bar">
+          <div class="priority-segment priority-high" style="width: 25%">5</div>
+          <div class="priority-segment priority-medium" style="width: 30%">6</div>
+          <div class="priority-segment priority-low" style="width: 35%">7</div>
+          <div class="priority-segment priority-none" style="width: 10%">2</div>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px;">
+          <span style="color: var(--danger)">High: 5</span>
+          <span style="color: var(--warning)">Medium: 6</span>
+          <span style="color: var(--success)">Low: 7</span>
+          <span style="color: var(--text-secondary)">None: 2</span>
+        </div>
+      `;
+    }
+
+    function renderTagsWidget() {
+      const tags = [
+        { name: 'work', count: 12 },
+        { name: 'personal', count: 8 },
+        { name: 'urgent', count: 5 },
+        { name: 'meeting', count: 4 },
+        { name: 'bug', count: 3 },
+        { name: 'feature', count: 7 }
+      ];
+      
+      return `
+        <div class="tag-cloud">
+          ${tags.map(t => `
+            <span class="tag">${t.name}</span>
+            <span class="tag count">${t.count}</span>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function renderDeadlinesWidget() {
+      const deadlines = [
+        { title: 'Q1 Report', date: 'Today', type: 'overdue' },
+        { title: 'Client Demo', date: 'Tomorrow', type: 'soon' },
+        { title: 'Code Review', date: 'Mar 15', type: 'normal' },
+        { title: 'Release v2.0', date: 'Mar 20', type: 'normal' }
+      ];
+      
+      return `
+        <div class="deadline-list">
+          ${deadlines.map(d => `
+            <div class="deadline-item ${d.type}">
+              <span class="deadline-title">${d.title}</span>
+              <span class="deadline-date">${d.date}</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    // Initialize on load
+    init();
+  </script>
+</body>
+</html>

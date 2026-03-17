@@ -1,0 +1,29 @@
+{
+  "agents": [
+    {
+      "id": "echo-main",
+      "status": "running",
+      "lastHeartbeat": 1709375100000,
+      "currentTask": "Processing cron: Mission Control Build",
+      "type": "main",
+      "runtime": "minimax-portal/MiniMax-M2.5"
+    },
+    {
+      "id": "coder-1",
+      "status": "idle",
+      "lastHeartbeat": 1709374800000,
+      "currentTask": null,
+      "type": "subagent",
+      "runtime": "openai-codex/gpt-5.3-codex"
+    },
+    {
+      "id": "planner-1",
+      "status": "error",
+      "lastHeartbeat": 1709373000000,
+      "currentTask": null,
+      "error": "Connection timeout - retry pending",
+      "type": "subagent",
+      "runtime": "deepseek/deepseek-chat"
+    }
+  ]
+}

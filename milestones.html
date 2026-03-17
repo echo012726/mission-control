@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Milestones - Mission Control</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <header class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-4">
+    <div class="max-w-6xl mx-auto flex justify-between items-center">
+      <h1 class="text-2xl font-bold">Milestones</h1>
+      <button onclick="openModal()" class="bg-white text-purple-600 px-4 py-2 rounded-lg font-semibold">+ New</button>
+    </div>
+  </header>
+  <div class="max-w-6xl mx-auto mt-6 px-4">
+    <div class="grid grid-cols-4 gap-4">
+      <div class="bg-white rounded-xl p-4 shadow border-l-4 border-purple-500"><div class="text-3xl font-bold" id="totalCount">0</div><div class="text-gray-500 text-sm">Total</div></div>
+      <div class="bg-white rounded-xl p-4 shadow border-l-4 border-green-500"><div class="text-3xl font-bold" id="completedCount">0</div><div class="text-gray-500 text-sm">Completed</div></div>
+      <div class="bg-white rounded-xl p-4 shadow border-l-4 border-yellow-500"><div class="text-3xl font-bold" id="inProgressCount">0</div><div class="text-gray-500 text-sm">Active</div></div>
+      <div class="bg-white rounded-xl p-4 shadow border-l-4 border-red-500"><div class="text-3xl font-bold" id="overdueCount">0</div><div class="text-gray-500 text-sm">Overdue</div></div>
+    </div>
+  </div>
+  <div class="max-w-6xl mx-auto mt-6 px-4 pb-12">
+    <div id="milestonesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    <div id="emptyState" class="text-center py-12 hidden"><h3 class="text-xl text-gray-700">No milestones yet</h3></div>
+  </div>
+  <div id="modal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl w-full max-w-lg mx-4 p-6">
+      <h2 id="modalTitle" class="text-xl font-bold mb-4">New Milestone</h2>
+      <form id="milestoneForm" onsubmit="saveMilestone(event)">
+        <input type="hidden" id="milestoneId">
+        <div class="space-y-4">
+          <div><label class="block text-sm font-medium mb-1">Title</label><input type="text" id="title" required class="w-full px-3 py-2 border rounded-lg"></div>
+          <div><label class="block text-sm font-medium mb-1">Description</label><textarea id="description" rows="2" class="w-full px-3 py-2 border rounded-lg"></textarea></div>
+          <div class="grid grid-cols-2 gap-4">
+            <div><label class="block text-sm font-medium mb-1">Target Date</label><input type="date" id="targetDate" required class="w-full px-3 py-2 border rounded-lg"></div>
+            <div><label class="block text-sm font-medium mb-1">Status</label><select id="status" class="w-full px-3 py-2 border rounded-lg"><option value="active">Active</option><option value="completed">Completed</option></select></div>
+          </div>
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 text-gray-600">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded-lg">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <script>
+    var milestones = JSON.parse(localStorage.getItem("mc_milestones") || "[]");
+    var currentFilter = "all";
+    document.addEventListener("DOMContentLoaded", function() { renderMilestones(); updateStats(); });
+    function renderMilestones() {
+      var grid = document.getElementById("milestonesGrid");
+      var empty = document.getElementById("emptyState");
+      var filtered = milestones.filter(function(m) {
+        if (currentFilter === "all") return true;
+        if (currentFilter === "active") return m.status === "active";
+        if (currentFilter === "completed") return m.status === "completed";
+        return true;
+      });
+      if (filtered.length === 0) { grid.innerHTML = ""; empty.classList.remove("hidden"); return; }
+      empty.classList.add("hidden");
+      grid.innerHTML = filtered.map(function(m) {
+        var isOverdue = m.status === "active" && new Date(m.targetDate) < new Date();
+        return "<div class=\"bg-white rounded-xl shadow p-5 border-l-4 " + (m.status === "completed" ? "border-green-500" : isOverdue ? "border-red-500" : "border-purple-500") + "\"><h3 class=\"font-semibold\">" + m.title + "</h3><p class=\"text-gray-600 text-sm\">" + (m.description || "") + "</p><div class=\"flex justify-between items-center mt-3\"><span class=\"text-sm text-gray-500\">" + new Date(m.targetDate).toLocaleDateString() + "</span><span class=\"px-2 py-1 rounded text-xs " + (m.status === "completed" ? "bg-green-100 text-green-700" : isOverdue ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700") + "\">" + (m.status === "active" ? (isOverdue ? "Overdue" : "Active") : m.status) + "</span></div></div>";
+      }).join("");
+    }
+    function updateStats() {
+      var now = new Date();
+      document.getElementById("totalCount").textContent = milestones.length;
+      document.getElementById("completedCount").textContent = milestones.filter(function(m) { return m.status === "completed"; }).length;
+      document.getElementById("inProgressCount").textContent = milestones.filter(function(m) { return m.status === "active"; }).length;
+      document.getElementById("overdueCount").textContent = milestones.filter(function(m) { return m.status === "active" && new Date(m.targetDate) < now; }).length;
+    }
+    function openModal(milestone) {
+      document.getElementById("modal").classList.remove("hidden");
+      if (milestone) {
+        document.getElementById("modalTitle").textContent = "Edit Milestone";
+        document.getElementById("milestoneId").value = milestone.id;
+        document.getElementById("title").value = milestone.title;
+        document.getElementById("description").value = milestone.description || "";
+        document.getElementById("targetDate").value = milestone.targetDate;
+        document.getElementById("status").value = milestone.status;
+      } else {
+        document.getElementById("modalTitle").textContent = "New Milestone";
+        document.getElementById("milestoneForm").reset();
+        document.getElementById("milestoneId").value = "";
+      }
+    }
+    function closeModal() { document.getElementById("modal").classList.add("hidden"); }
+    function saveMilestone(e) {
+      e.preventDefault();
+      var id = document.getElementById("milestoneId").value;
+      var data = { id: id || "milestone-" + Date.now(), title: document.getElementById("title").value, description: document.getElementById("description").value, targetDate: document.getElementById("targetDate").value, status: document.getElementById("status").value, createdAt: new Date().toISOString() };
+      if (id) { var idx = milestones.findIndex(function(m) { return m.id === id; }); milestones[idx] = data; }
+      else { milestones.push(data); }
+      localStorage.setItem("mc_milestones", JSON.stringify(milestones));
+      closeModal(); renderMilestones(); updateStats();
+    }
+    document.getElementById("modal").addEventListener("click", function(e) { if (e.target.id === "modal") closeModal(); });
+  </script>
+</body>
+</html>

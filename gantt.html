@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mission Control - Gantt Chart</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #1a1a2e;
+      --bg-secondary: #16213e;
+      --bg-tertiary: #0f0f1a;
+      --text-primary: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --accent-start: #667eea;
+      --accent-end: #764ba2;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --grid-line: #2d2d44;
+      --border: #3d3d5c;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    .header {
+      background: var(--bg-secondary);
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header h1 {
+      font-size: 20px;
+      font-weight: 600;
+      background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn:hover {
+      background: var(--bg-secondary);
+      border-color: var(--accent-start);
+    }
+
+    .btn.active {
+      background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
+      border-color: transparent;
+    }
+
+    .nav-btns {
+      display: flex;
+      gap: 4px;
+    }
+
+    .nav-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .nav-btn:hover {
+      background: var(--bg-secondary);
+    }
+
+    .view-toggle {
+      display: flex;
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+      padding: 4px;
+      gap: 4px;
+    }
+
+    .view-btn {
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .view-btn.active {
+      background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
+      color: white;
+    }
+
+    .container {
+      display: flex;
+      height: calc(100vh - 70px);
+    }
+
+    .sidebar {
+      width: 280px;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--text-secondary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .task-list {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .task-item {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .task-item:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .task-item-title {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .task-item-dates {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .task-item-priority {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+
+    .priority-high { background: var(--danger); }
+    .priority-medium { background: var(--warning); }
+    .priority-low { background: var(--success); }
+
+    .gantt-area {
+      flex: 1;
+      overflow: auto;
+      position: relative;
+    }
+
+    .gantt-header {
+      position: sticky;
+      top: 0;
+      background: var(--bg-secondary);
+      z-index: 10;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .gantt-dates {
+      display: flex;
+      height: 48px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .gantt-date-column {
+      min-width: 60px;
+      text-align: center;
+      padding: 8px;
+      border-right: 1px solid var(--grid-line);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .gantt-date-column.weekend {
+      background: rgba(255,255,255,0.02);
+    }
+
+    .gantt-date-column.today {
+      background: rgba(245, 158, 11, 0.1);
+    }
+
+    .date-day {
+      font-size: 11px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+    }
+
+    .date-num {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .gantt-months {
+      display: flex;
+      height: 32px;
+      background: var(--bg-tertiary);
+    }
+
+    .gantt-month {
+      min-width: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      border-right: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+
+    .gantt-body {
+      position: relative;
+      min-height: calc(100% - 80px);
+    }
+
+    .gantt-grid {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      pointer-events: none;
+    }
+
+    .grid-column {
+      min-width: 60px;
+      border-right: 1px solid var(--grid-line);
+    }
+
+    .grid-column.weekend {
+      background: rgba(255,255,255,0.02);
+    }
+
+    .grid-column.today {
+      background: rgba(245, 158, 11, 0.05);
+    }
+
+    .gantt-rows {
+      position: relative;
+    }
+
+    .gantt-row {
+      height: 56px;
+      position: relative;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .gantt-row:hover {
+      background: rgba(255,255,255,0.02);
+    }
+
+    .task-bar {
+      position: absolute;
+      height: 32px;
+      top: 12px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      font-size: 12px;
+      font-weight: 500;
+      color: white;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: transform 0.1s, box-shadow 0.2s;
+      user-select: none;
+    }
+
+    .task-bar:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .task-bar.completed {
+      background: linear-gradient(135deg, #10b981, #059669);
+    }
+
+    .task-bar.overdue {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+    }
+
+    .task-bar.in-progress {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+    }
+
+    .task-bar-progress {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      background: rgba(255,255,255,0.2);
+      border-radius: 6px 0 0 6px;
+    }
+
+    .today-line {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--warning);
+      z-index: 5;
+      box-shadow: 0 0 8px var(--warning);
+    }
+
+    .today-line::before {
+      content: 'TODAY';
+      position: absolute;
+      top: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--warning);
+      letter-spacing: 0.5px;
+    }
+
+    .dependency-line {
+      position: absolute;
+      pointer-events: none;
+      z-index: 4;
+    }
+
+    .dependency-line path {
+      fill: none;
+      stroke: var(--text-secondary);
+      stroke-width: 1.5;
+      opacity: 0.5;
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--text-secondary);
+      padding: 40px;
+      text-align: center;
+    }
+
+    .empty-state-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    .empty-state h3 {
+      font-size: 18px;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    .stats-bar {
+      display: flex;
+      gap: 24px;
+      padding: 12px 24px;
+      background: var(--bg-tertiary);
+      border-top: 1px solid var(--border);
+    }
+
+    .stat {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .stat-value {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .stat.completed .stat-value { color: var(--success); }
+    .stat.in-progress .stat-value { color: var(--warning); }
+    .stat.overdue .stat-value { color: var(--danger); }
+
+    .legend {
+      display: flex;
+      gap: 16px;
+      margin-left: auto;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .legend-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-tertiary);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-secondary);
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 24px;
+      width: 400px;
+      max-width: 90%;
+      border: 1px solid var(--border);
+    }
+
+    .modal h3 {
+      font-size: 18px;
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      font-size: 14px;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--accent-start);
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 24px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
+      border: none;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+    }
+
+    /* Animations */
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .loading {
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <h1>📊 Gantt Chart</h1>
+    <div class="controls">
+      <div class="nav-btns">
+        <button class="nav-btn" id="prevBtn">◀</button>
+        <button class="nav-btn" id="todayBtn">Today</button>
+        <button class="nav-btn" id="nextBtn">▶</button>
+      </div>
+      <div class="view-toggle">
+        <button class="view-btn" data-view="day">Day</button>
+        <button class="view-btn active" data-view="week">Week</button>
+        <button class="view-btn" data-view="month">Month</button>
+      </div>
+      <button class="btn" id="backBtn">← Back to Board</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <span>Tasks</span>
+        <span id="taskCount">0</span>
+      </div>
+      <div class="task-list" id="taskList"></div>
+    </aside>
+
+    <main class="gantt-area" id="ganttArea">
+      <div class="gantt-header">
+        <div class="gantt-months" id="ganttMonths"></div>
+        <div class="gantt-dates" id="ganttDates"></div>
+      </div>
+      <div class="gantt-body" id="ganttBody">
+        <div class="gantt-grid" id="ganttGrid"></div>
+        <div class="gantt-rows" id="ganttRows">
+          <div class="today-line" id="todayLine"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat completed">
+      <span class="stat-value" id="completedCount">0</span>
+      <span class="stat-label">Completed</span>
+    </div>
+    <div class="stat in-progress">
+      <span class="stat-value" id="inProgressCount">0</span>
+      <span class="stat-label">In Progress</span>
+    </div>
+    <div class="stat overdue">
+      <span class="stat-value" id="overdueCount">0</span>
+      <span class="stat-label">Overdue</span>
+    </div>
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-color" style="background: linear-gradient(135deg, #667eea, #764ba2)"></div>
+        <span>Pending</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: linear-gradient(135deg, #10b981, #059669)"></div>
+        <span>Completed</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: linear-gradient(135deg, #f59e0b, #d97706)"></div>
+        <span>In Progress</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: linear-gradient(135deg, #ef4444, #dc2626)"></div>
+        <span>Overdue</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="taskModal">
+    <div class="modal">
+      <h3 id="modalTitle">Edit Task</h3>
+      <div class="form-group">
+        <label>Task Title</label>
+        <input type="text" id="taskTitle" readonly>
+      </div>
+      <div class="form-group">
+        <label>Start Date</label>
+        <input type="date" id="taskStartDate">
+      </div>
+      <div class="form-group">
+        <label>Due Date</label>
+        <input type="date" id="taskDueDate">
+      </div>
+      <div class="form-group">
+        <label>Progress (%)</label>
+        <input type="number" id="taskProgress" min="0" max="100">
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="cancelModal">Cancel</button>
+        <button class="btn btn-primary" id="saveModal">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State
+    let tasks = [];
+    let viewMode = 'week';
+    let startDate = new Date();
+    startDate.setDate(startDate.getDate() - startDate.getDay()); // Start from Sunday of current week
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      loadTasks();
+      setupEventListeners();
+      render();
+    });
+
+    // Load tasks from localStorage or generate sample data
+    function loadTasks() {
+      const stored = localStorage.getItem('mission-control-tasks');
+      if (stored) {
+        tasks = JSON.parse(stored);
+      } else {
+        // Generate sample tasks
+        generateSampleTasks();
+      }
+      updateStats();
+    }
+
+    function generateSampleTasks() {
+      const sampleProjects = ['Website Redesign', 'Mobile App', 'Marketing Campaign'];
+      const taskNames = [
+        'Design homepage mockup',
+        'Set up CI/CD pipeline',
+        'Write API documentation',
+        'User testing sessions',
+        'Database optimization',
+        'Security audit',
+        'Performance review',
+        'Team meeting',
+        'Sprint planning',
+        'Code review'
+      ];
+
+      tasks = taskNames.map((name, i) => {
+        const start = new Date(today);
+        start.setDate(start.getDate() + Math.floor(Math.random() * 10) - 5);
+        const due = new Date(start);
+        due.setDate(due.getDate() + Math.floor(Math.random() * 14) + 1);
+        
+        const statusRand = Math.random();
+        let status = 'pending';
+        let progress = 0;
+        if (statusRand > 0.7) { status = 'completed'; progress = 100; }
+        else if (statusRand > 0.4) { status = 'in-progress'; progress = Math.floor(Math.random() * 80) + 10; }
+
+        const priorityRand = Math.random();
+        let priority = 'low';
+        if (priorityRand > 0.7) priority = 'high';
+        else if (priorityRand > 0.4) priority = 'medium';
+
+        return {
+          id: `task-${i + 1}`,
+          title: name,
+          status,
+          priority,
+          progress,
+          startDate: start.toISOString().split('T')[0],
+          dueDate: due.toISOString().split('T')[0],
+          project: sampleProjects[i % sampleProjects.length],
+          dependencies: i > 0 ? [`task-${i}`] : []
+        };
+      });
+
+      saveTasks();
+    }
+
+    function saveTasks() {
+      localStorage.setItem('mission-control-tasks', JSON.stringify(tasks));
+      updateStats();
+    }
+
+    function updateStats() {
+      const completed = tasks.filter(t => t.status === 'completed').length;
+      const inProgress = tasks.filter(t => t.status === 'in-progress').length;
+      const overdue = tasks.filter(t => new Date(t.dueDate) < today && t.status !== 'completed').length;
+
+      document.getElementById('completedCount').textContent = completed;
+      document.getElementById('inProgressCount').textContent = inProgress;
+      document.getElementById('overdueCount').textContent = overdue;
+      document.getElementById('taskCount').textContent = tasks.length;
+    }
+
+    // Setup event listeners
+    function setupEventListeners() {
+      document.getElementById('prevBtn').addEventListener('click', () => navigate(-1));
+      document.getElementById('nextBtn').addEventListener('click', () => navigate(1));
+      document.getElementById('todayBtn').addEventListener('click', jumpToToday);
+      document.getElementById('backBtn').addEventListener('click', () => window.location.href = 'kanban.html');
+      
+      document.querySelectorAll('.view-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+          e.target.classList.add('active');
+          viewMode = e.target.dataset.view;
+          render();
+        });
+      });
+
+      document.getElementById('cancelModal').addEventListener('click', closeModal);
+      document.getElementById('saveModal').addEventListener('click', saveTaskFromModal);
+      document.getElementById('taskModal').addEventListener('click', (e) => {
+        if (e.target.id === 'taskModal') closeModal();
+      });
+    }
+
+    function navigate(direction) {
+      const days = viewMode === 'day' ? 1 : viewMode === 'week' ? 7 : 30;
+      startDate.setDate(startDate.getDate() + (direction * days));
+      render();
+    }
+
+    function jumpToToday() {
+      startDate = new Date();
+      startDate.setDate(startDate.getDate() - startDate.getDay());
+      render();
+    }
+
+    // Render functions
+    function render() {
+      renderHeader();
+      renderGrid();
+      renderRows();
+      renderTodayLine();
+    }
+
+    function renderHeader() {
+      const numDays = viewMode === 'day' ? 14 : viewMode === 'week' ? 14 : 30;
+      
+      // Render months
+      const monthsEl = document.getElementById('ganttMonths');
+      monthsEl.innerHTML = '';
+      
+      let currentMonth = -1;
+      for (let i = 0; i < numDays; i++) {
+        const date = new Date(startDate);
+        date.setDate(date.getDate() + i);
+        const month = date.getMonth();
+        
+        if (month !== currentMonth) {
+          const monthEl = document.createElement('div');
+          monthEl.className = 'gantt-month';
+          monthEl.textContent = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+          monthEl.style.position = 'absolute';
+          monthEl.style.left = `${i * 60}px`;
+          monthEl.style.width = `${60 * countDaysInMonth(date)}px`;
+          monthsEl.appendChild(monthEl);
+          currentMonth = month;
+        }
+      }
+
+      // Render dates
+      const datesEl = document.getElementById('ganttDates');
+      datesEl.innerHTML = '';
+
+      for (let i = 0; i < numDays; i++) {
+        const date = new Date(startDate);
+        date.setDate(date.getDate() + i);
+        
+        const dateEl = document.createElement('div');
+        dateEl.className = 'gantt-date-column';
+        if (date.getDay() === 0 || date.getDay() === 6) dateEl.classList.add('weekend');
+        if (date.toDateString() === today.toDateString()) dateEl.classList.add('today');
+        
+        dateEl.innerHTML = `
+          <span class="date-day">${date.toLocaleDateString('en-US', { weekday: 'short' })}</span>
+          <span class="date-num">${date.getDate()}</span>
+        `;
+        datesEl.appendChild(dateEl);
+      }
+    }
+
+    function countDaysInMonth(date) {
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      return new Date(year, month + 1, 0).getDate();
+    }
+
+    function renderGrid() {
+      const numDays = viewMode === 'day' ? 14 : viewMode === 'week' ? 14 : 30;
+      const gridEl = document.getElementById('ganttGrid');
+      gridEl.innerHTML = '';
+
+      for (let i = 0; i < numDays; i++) {
+        const date = new Date(startDate);
+        date.setDate(date.getDate() + i);
+        
+        const col = document.createElement('div');
+        col.className = 'grid-column';
+        if (date.getDay() === 0 || date.getDay() === 6) col.classList.add('weekend');
+        if (date.toDateString() === today.toDateString()) col.classList.add('today');
+        
+        gridEl.appendChild(col);
+      }
+    }
+
+    function renderRows() {
+      const rowsEl = document.getElementById('ganttRows');
+      
+      // Remove existing task bars (keep today line)
+      const todayLine = document.getElementById('todayLine');
+      rowsEl.innerHTML = '';
+      rowsEl.appendChild(todayLine);
+
+      // Render sidebar
+      const taskListEl = document.getElementById('taskList');
+      taskListEl.innerHTML = '';
+
+      tasks.forEach((task, index) => {
+        // Sidebar item
+        const taskItem = document.createElement('div');
+        taskItem.className = 'task-item';
+        taskItem.innerHTML = `
+          <div class="task-item-title">
+            <span class="task-item-priority priority-${task.priority}"></span>
+            ${task.title}
+          </div>
+          <div class="task-item-dates">
+            ${formatDate(task.startDate)} → ${formatDate(task.dueDate)}
+          </div>
+        `;
+        taskItem.addEventListener('click', () => openTaskModal(task));
+        taskListEl.appendChild(taskItem);
+
+        // Gantt row
+        const row = document.createElement('div');
+        row.className = 'gantt-row';
+        row.dataset.taskId = task.id;
+
+        // Task bar
+        const bar = createTaskBar(task, index);
+        if (bar) row.appendChild(bar);
+
+        rowsEl.appendChild(row);
+      });
+    }
+
+    function createTaskBar(task, index) {
+      const taskStart = new Date(task.startDate || task.dueDate);
+      const taskEnd = new Date(task.dueDate);
+      
+      const numDays = viewMode === 'day' ? 14 : viewMode === 'week' ? 14 : 30;
+      const viewStart = new Date(startDate);
+      const viewEnd = new Date(viewStart);
+      viewEnd.setDate(viewEnd.getDate() + numDays);
+
+      // Check if task is visible
+      if (taskEnd < viewStart || taskStart > viewEnd) return null;
+
+      const bar = document.createElement('div');
+      bar.className = 'task-bar';
+      
+      // Status class
+      if (task.status === 'completed') bar.classList.add('completed');
+      else if (task.status === 'in-progress') bar.classList.add('in-progress');
+      else if (new Date(task.dueDate) < today) bar.classList.add('overdue');
+
+      // Calculate position
+      const daysFromStart = Math.floor((taskStart - viewStart) / (1000 * 60 * 60 * 24));
+      const duration = Math.max(1, Math.ceil((taskEnd - taskStart) / (1000 * 60 * 60 * 24)) + 1);
+      
+      bar.style.left = `${Math.max(0, daysFromStart) * 60 + 12}px`;
+      bar.style.width = `${Math.min(duration, numDays - Math.max(0, daysFromStart)) * 60 - 24}px`;
+      bar.innerHTML = `
+        <div class="task-bar-progress" style="width: ${task.progress}%"></div>
+        ${task.title}
+      `;
+
+      bar.addEventListener('click', () => openTaskModal(task));
+      bar.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        editTaskDates(task);
+      });
+
+      // Make draggable
+      makeDraggable(bar, task);
+
+      return bar;
+    }
+
+    function makeDraggable(bar, task) {
+      let startX = 0;
+      let startLeft = 0;
+
+      bar.addEventListener('mousedown', (e) => {
+        startX = e.clientX;
+        startLeft = parseInt(bar.style.left || 0);
+        
+        const onMouseMove = (e) => {
+          const diff = e.clientX - startX;
+          const newLeft = startLeft + diff;
+          if (newLeft >= 0) bar.style.left = `${newLeft}px`;
+        };
+
+        const onMouseUp = (e) => {
+          document.removeEventListener('mousemove', onMouseMove);
+          document.removeEventListener('mouseup', onMouseUp);
+          
+          // Calculate new dates
+          const daysDiff = Math.round((parseInt(bar.style.left) - startLeft) / 60);
+          if (daysDiff !== 0) {
+            const newStart = new Date(task.startDate || task.dueDate);
+            newStart.setDate(newStart.getDate() + daysDiff);
+            const newDue = new Date(task.dueDate);
+            newDue.setDate(newDue.getDate() + daysDiff);
+            
+            task.startDate = newStart.toISOString().split('T')[0];
+            task.dueDate = newDue.toISOString().split('T')[0];
+            saveTasks();
+            render();
+          }
+        };
+
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+      });
+    }
+
+    function renderTodayLine() {
+      const numDays = viewMode === 'day' ? 14 : viewMode === 'week' ? 14 : 30;
+      const viewStart = new Date(startDate);
+      const viewEnd = new Date(viewStart);
+      viewEnd.setDate(viewEnd.getDate() + numDays);
+
+      const todayLine = document.getElementById('todayLine');
+      
+      if (today >= viewStart && today <= viewEnd) {
+        const daysFromStart = Math.floor((today - viewStart) / (1000 * 60 * 60 * 24));
+        todayLine.style.left = `${daysFromStart * 60 + 30}px`;
+        todayLine.style.display = 'block';
+      } else {
+        todayLine.style.display = 'none';
+      }
+    }
+
+    // Modal functions
+    let currentTask = null;
+
+    function openTaskModal(task) {
+      currentTask = task;
+      document.getElementById('modalTitle').textContent = 'Edit: ' + task.title;
+      document.getElementById('taskTitle').value = task.title;
+      document.getElementById('taskStartDate').value = task.startDate || '';
+      document.getElementById('taskDueDate').value = task.dueDate;
+      document.getElementById('taskProgress').value = task.progress;
+      document.getElementById('taskModal').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('taskModal').classList.remove('active');
+      currentTask = null;
+    }
+
+    function saveTaskFromModal() {
+      if (!currentTask) return;
+      
+      currentTask.startDate = document.getElementById('taskStartDate').value;
+      currentTask.dueDate = document.getElementById('taskDueDate').value;
+      currentTask.progress = parseInt(document.getElementById('taskProgress').value) || 0;
+      
+      if (currentTask.progress === 100) currentTask.status = 'completed';
+      else if (currentTask.progress > 0) currentTask.status = 'in-progress';
+      
+      saveTasks();
+      closeModal();
+      render();
+    }
+
+    function editTaskDates(task) {
+      openTaskModal(task);
+    }
+
+    // Utility functions
+    function formatDate(dateStr) {
+      if (!dateStr) return 'No date';
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+  </script>
+</body>
+</html>

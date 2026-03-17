@@ -1,0 +1,359 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Task {
+  id               String           @id @default(uuid())
+  title            String
+  description      String?
+  status           String           @default("inbox")
+  priority         String           @default("medium")
+  tags             String           @default("[]")
+  labels           String           @default("[]")
+  agentId          String?
+  assigneeId       String?          // Team member ID who is assigned
+  assigneeName     String?          // Cached assignee name
+  dependsOn        String           @default("[]")
+  dueDate          DateTime?
+  dueTime          String?
+  reminder         DateTime?
+  reminderSent     Boolean          @default(false)
+  timeSpent        Int              @default(0)
+  timerStarted     String?
+  recurrence       String?
+  recurrenceCount  Int              @default(0)
+  recurrenceType    String?          // daily, weekly, monthly, yearly, custom
+  recurrenceInterval Int?             // interval for custom recurrence (e.g., every N days)
+  recurrenceEndDate DateTime?        // when to stop recurring
+  parentTaskId      String?           // link to parent task in a series
+  todoistId        String?          @unique
+  todoistProjectId String?
+  todoistSyncedAt  DateTime?
+  googleCalendarId String?
+  gmailThreadId   String?
+  asanaId        String?          @unique
+  asanaProjectId String?
+  trelloId       String?          @unique
+  trelloBoardId  String?
+  trelloListId   String?
+  customFields     String           @default("[]")
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  deletedAt        DateTime?
+  estimatedTime    Int?
+  starred          Boolean          @default(false)
+  // Location-based reminder fields
+  locationName     String?
+  locationAddress  String?
+  locationLat      Float?
+  locationLng      Float?
+  locationRadius   Int?
+  locationTrigger  String?
+  locationEnabled  Boolean?         @default(false)
+  
+  // GitHub Integration fields
+  githubIssueUrl   String?
+  githubIssueId    String?
+  githubPRUrl      String?
+  githubStatus     String?
+  
+  // Portfolio assignment
+  portfolioId      String?
+  portfolio        Portfolio? @relation(fields: [portfolioId], references: [id])
+  
+  subtasks         SubTask[]
+  attachments      TaskAttachment[]
+  comments         TaskComment[]
+}
+
+model SubTask {
+  id          String    @id @default(uuid())
+  taskId      String
+  title       String
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  task        Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model Label {
+  id        String   @id @default(uuid())
+  name      String
+  color     String   @default("#6366f1")
+  createdAt DateTime @default(now())
+}
+
+model Portfolio {
+  id        String   @id @default(uuid())
+  name      String
+  color     String   @default("#3b82f6")
+  budget    Float?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tasks     Task[]
+}
+
+model TaskComment {
+  id        String   @id @default(uuid())
+  taskId    String
+  content   String
+  author    String
+  createdAt DateTime @default(now())
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model TaskAttachment {
+  id          String   @id @default(uuid())
+  taskId      String
+  filename    String
+  filepath    String?
+  mimeType    String?
+  fileSize    Int?
+  fileType    String   @default("other") // 'image', 'document', 'other'
+  description String   @default("")
+  contentType String
+  data        String
+  size        Int
+  uploadedBy  String   @default("user")
+  createdAt   DateTime @default(now())
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model CronJob {
+  id        String    @id @default(uuid())
+  name      String
+  schedule  String
+  command   String
+  enabled   Boolean   @default(true)
+  lastRun   DateTime?
+  nextRun   DateTime?
+  status    String    @default("idle")
+  lastError String?
+  tags      String    @default("[]")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Webhook {
+  id        String   @id @default(uuid())
+  name      String
+  url       String
+  events    String   @default("[]")
+  enabled   Boolean  @default(true)
+  secret    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Approval {
+  id          String   @id @default(uuid())
+  taskId      String
+  type        String
+  status      String   @default("pending")
+  requestedBy String?
+  reviewedBy  String?
+  reason      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ActivityLog {
+  id        String   @id @default(uuid())
+  type      String
+  payload   String?
+  createdAt DateTime @default(now())
+}
+
+model AuthToken {
+  id        String   @id @default(uuid())
+  tokenHash String
+  createdAt DateTime @default(now())
+}
+
+model DashboardConfig {
+  id             String    @id @default(uuid())
+  userId         String    @default("default")
+  name           String    @default("Main")
+  isDefault      Boolean   @default(false)
+  widgets        String    @default("[]")
+  settings       String    @default("{}")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  shareExpiresAt DateTime?
+  sharePassword  String?
+  shareToken     String?   @unique
+}
+
+model DailyStreak {
+  id             String   @id @default(uuid())
+  date           String   @unique
+  completedCount Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model TaskTemplate {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  category    String   @default("general")
+  taskData    String   @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SavedFilter {
+  id        String   @id @default(uuid())
+  name      String
+  filters   String   @default("{}")
+  userId    String   @default("default")
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model NotificationSettings {
+  id               String   @id @default(uuid())
+  userId           String   @default("default")
+  enabled          Boolean  @default(false)
+  dueDateReminders Boolean  @default(true)
+  assignedTasks    Boolean  @default(true)
+  mentions         Boolean  @default(true)
+  dailyDigest      Boolean  @default(false)
+  subscription     String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model GoogleAccount {
+  id            String   @id @default(uuid())
+  userId        String   @default("default")
+  email         String
+  accessToken   String
+  refreshToken  String
+  expiresAt     DateTime
+  calendarId    String?
+  syncEnabled   Boolean  @default(true)
+  lastSyncAt    DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Workflow {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  nodes       String   @default("[]")  // JSON array of workflow nodes
+  edges       String   @default("[]")  // JSON array of connections
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model WorkflowExecutionLog {
+  id              String   @id @default(uuid())
+  workflowId       String
+  status          String   @default("success")  // success, failed, partial
+  triggeredBy     String?
+  executedActions Int      @default(0)
+  errors          String?  // JSON array of error messages
+  executionData   String?  // JSON with trigger data and actions executed
+  createdAt       DateTime @default(now())
+}
+
+// Team Collaboration Models
+model Team {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  members     TeamMember[]
+  sharedTasks SharedTask[]
+}
+
+model TeamMember {
+  id         String   @id @default(uuid())
+  teamId     String
+  userId     String   // email or identifier
+  name       String
+  role       String   @default("member") // owner, admin, member, guest
+  avatarUrl  String?
+  joinedAt   DateTime @default(now())
+  team       Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+}
+
+model SharedTask {
+  id        String   @id @default(uuid())
+  taskId    String
+  teamId    String
+  sharedAt  DateTime @default(now())
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+}
+
+model PushSubscription {
+  id            String   @id @default(uuid())
+  userId        String   @default("default")
+  endpoint      String   @unique
+  p256dh        String
+  auth          String
+  userAgent     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model SlackAccount {
+  id            String   @id @default(uuid())
+  userId        String   @default("default")
+  slackUserId   String
+  teamId        String
+  teamName      String
+  accessToken   String
+  botToken      String
+  webhookUrl    String?
+  channelId     String?
+  channelName   String?
+  scopes        String   @default("[]")
+  notifications Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Habit {
+  id           String            @id @default(uuid())
+  name         String
+  icon         String            @default("⭐")
+  color        String            @default("#6366f1")
+  frequency    String            @default("daily") // daily, weekly, custom
+  linkedTasks  String            @default("[]") // JSON array of task IDs
+  streak       Int               @default(0)
+  bestStreak   Int               @default(0)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  completions  HabitCompletion[]
+}
+
+model HabitCompletion {
+  id         String   @id @default(uuid())
+  habitId    String
+  completedAt DateTime @default(now())
+  source     String   @default("manual") // task, manual
+  habit      Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+}
+
+model GitHubAccount {
+  id          String   @id @default(cuid())
+  userId      String   @unique @default("default")
+  githubId    String
+  username    String
+  accessToken String
+  avatarUrl   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
